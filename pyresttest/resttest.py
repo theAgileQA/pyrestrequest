@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import sys
 import os
-import inspect
 import traceback
 import yaml
 import pycurl
@@ -11,6 +10,7 @@ import logging
 import threading
 from optparse import OptionParser
 from email import message_from_string  # For headers handling
+from . import oci_signer
 import time
 
 try:
@@ -111,6 +111,8 @@ class TestConfig:
     verbose = False
     ssl_insecure = False
     skip_term_colors = False  # Turn off output term colors
+    # NEW
+    oci_signature = True
 
     # Binding and creation of generators
     variable_binds = None
@@ -325,7 +327,12 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
     headers = MyIO()
     body = MyIO()
     curl.setopt(pycurl.WRITEFUNCTION, body.write)
-    curl.setopt(pycurl.HEADERFUNCTION, headers.write)
+    if test_config.oci_signature:
+        signed_header = oci_signer.signature_generator(mytest)
+        curl.setopt(pycurl.HEADERFUNCTION, signed_header.write)
+    else:
+        curl.setopt(pycurl.HEADERFUNCTION, headers.write)
+
     if test_config.verbose:
         curl.setopt(pycurl.VERBOSE, True)
     if test_config.ssl_insecure:
@@ -344,7 +351,7 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
         print("%s" % (templated_test.headers))
         if mytest.body is not None:
             print("\n%s" % templated_test.body)
-        
+
 
         if sys.version_info >= (3,0):
             input("Press ENTER when ready (%d): " % (mytest.delay))
