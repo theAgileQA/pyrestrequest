@@ -31,7 +31,7 @@ def signature_generator(mytest):
 
 def request_signer():
     # load private pem file
-    with open("iic_testing/oci_api_key.pem".format(loc=os.getcwd()), "rb") as f:
+    with open("keys/oci_api_key.pem".format(loc=os.getcwd()), "rb") as f:
         apikey_pem = serialization.load_pem_private_key(f.read(), None, backend=default_backend())
     # create object for keys and algorithm
     req_signer = signer.DefaultRequestSigner({client_key_id: apikey_pem}, algorithm.AlgorithmRSASHA256)
