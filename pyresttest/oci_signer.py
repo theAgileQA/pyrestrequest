@@ -12,7 +12,7 @@ from cryptography.hazmat.backends import default_backend
 import requests
 
 # get env variable set to target url
-client_key_id = os.environ["KEY_ID"]
+client_key_id = os.environ.get("KEY_ID")
 
 
 def signature_generator(mytest):
