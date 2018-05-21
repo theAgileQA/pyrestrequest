@@ -16,7 +16,7 @@ client_key_id = os.environ.get("KEY_ID")
 
 
 def signature_generator(base_url, templated_test):
-    path = base_url + templated_test.url
+    path = base_url + templated_test
 
     # headers to sign is not the default, it also includes the HOST
     headers = (util.Headers.DATE, util.LHDR_HOST, util.LHDR_REQUEST_TARGET)
