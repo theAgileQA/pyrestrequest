@@ -15,8 +15,8 @@ import requests
 client_key_id = os.environ.get("KEY_ID")
 
 
-def signature_generator(mytest):
-    path = mytest.url
+def signature_generator(templated_test):
+    path = templated_test.url
 
     # headers to sign is not the default, it also includes the HOST
     headers = (util.Headers.DATE, util.LHDR_HOST, util.LHDR_REQUEST_TARGET)
@@ -31,7 +31,7 @@ def signature_generator(mytest):
 
 def request_signer():
     # load private pem file
-    with open("keys/oci_api_key.pem".format(loc=os.getcwd()), "rb") as f:
+    with open("/keys/oci_api_key.pem".format(loc=os.getcwd()), "rb") as f:
         apikey_pem = serialization.load_pem_private_key(f.read(), None, backend=default_backend())
     # create object for keys and algorithm
     req_signer = signer.DefaultRequestSigner({client_key_id: apikey_pem}, algorithm.AlgorithmRSASHA256)
