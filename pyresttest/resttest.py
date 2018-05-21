@@ -329,8 +329,7 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
     curl.setopt(pycurl.WRITEFUNCTION, body.write)
     if test_config.oci_signature:
         signed_header = oci_signer.signature_generator(mytest.get_url(), templated_test.url)
-        headers.write(str(signed_header))
-        curl.setopt(pycurl.HEADERFUNCTION, headers.write)
+        curl.setopt(pycurl.HEADERFUNCTION, headers.write(signed_header))
     else:
         curl.setopt(pycurl.HEADERFUNCTION, headers.write)
 
