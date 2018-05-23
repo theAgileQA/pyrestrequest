@@ -324,10 +324,11 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
     result.test = templated_test
 
     # generate and attach signature to header
-    print(templated_test)
     if test_config.oci_signature:
         signed_header = oci_signer.signature_generator(mytest, templated_test)
-        templated_test.append(signed_header)
+        oci_header = templated_test.get_headers()
+        oci_header["Authorization"] = signed_header
+        templated_test.set_headers(oci_header)
 
     # reset the body, it holds values from previous runs otherwise
     headers = MyIO()

@@ -26,7 +26,6 @@ def signature_generator(mytest, templated_test):
     signature = requests.Request("GET", path, headers={"date": formatdate(usegmt=True)}).prepare()
     # use the keyed_signer to generate a request using the signature provided
     keyed_signer.sign_request(signature)
-    print(signature.headers["Authorization"])
     return signature.headers["Authorization"]
 
 
