@@ -323,15 +323,18 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
     result = TestResponse()
     result.test = templated_test
 
+    # generate and attach signature to header
+    print(templated_test)
+    if test_config.oci_signature:
+        signed_header = oci_signer.signature_generator(mytest, templated_test)
+        templated_test.append(signed_header)
+
     # reset the body, it holds values from previous runs otherwise
     headers = MyIO()
     body = MyIO()
+
     curl.setopt(pycurl.WRITEFUNCTION, body.write)
-    if test_config.oci_signature:
-        signed_header = oci_signer.signature_generator(mytest.get_url(), templated_test.url)
-        curl.setopt(pycurl.HEADERFUNCTION, headers.write(str(signed_header)))
-    else:
-        curl.setopt(pycurl.HEADERFUNCTION, headers.write)
+    curl.setopt(pycurl.HEADERFUNCTION, headers.write)
 
     if test_config.verbose:
         curl.setopt(pycurl.VERBOSE, True)

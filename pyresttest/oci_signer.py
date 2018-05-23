@@ -15,8 +15,8 @@ import requests
 client_key_id = os.environ.get("KEY_ID")
 
 
-def signature_generator(base_url, templated_test):
-    path = base_url + templated_test
+def signature_generator(mytest, templated_test):
+    path = mytest.get_url() + templated_test.url
 
     # headers to sign is not the default, it also includes the HOST
     headers = (util.Headers.DATE, util.LHDR_HOST, util.LHDR_REQUEST_TARGET)
@@ -26,7 +26,8 @@ def signature_generator(base_url, templated_test):
     signature = requests.Request("GET", path, headers={"date": formatdate(usegmt=True)}).prepare()
     # use the keyed_signer to generate a request using the signature provided
     keyed_signer.sign_request(signature)
-    return signature.headers
+    print(signature.headers["Authorization"])
+    return signature.headers["Authorization"]
 
 
 def request_signer():
