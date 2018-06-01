@@ -328,6 +328,7 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
         signed_header = oci_signer.signature_generator(mytest, templated_test)
         oci_header = templated_test.get_headers()
         oci_header["Authorization"] = signed_header
+        oci_header["date"] = time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime())
         templated_test.set_headers(oci_header)
 
     # reset the body, it holds values from previous runs otherwise
@@ -901,7 +902,9 @@ def parse_command_line_args(args_in):
     parser.add_option(u'--absolute-urls', help='Enable absolute URLs in tests instead of relative paths',
                       action="store_true", dest="absolute_urls")
     parser.add_option(u'--skip_term_colors', help='Turn off the output term colors',
-                      action='store_true', default=False, dest="skip_term_colors")
+                      action='store_true', default=False, dest="skip_term_colors"),
+    parser.add_option(u'--oci-signature', help='Disable the OCI client signature',
+                      action='store_true', default=True, dest='oci_sig')
 
     (args, unparsed_args) = parser.parse_args(args_in)
     args = vars(args)
