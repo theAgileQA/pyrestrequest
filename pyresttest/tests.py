@@ -4,6 +4,7 @@ import copy
 import json
 import pycurl
 import sys
+import requests
 
 
 from . import contenthandling
@@ -392,6 +393,113 @@ class Test(object):
                 # getattr to look up constant for variable name
                 curl.setopt(getattr(curl, key), value)
         return curl
+
+    def configure_request(self, timeout=DEFAULT_TIMEOUT, context=None, curl_handle=None):
+        """ Create and mostly configure a request object for test, reusing existing if possible """
+
+        if curl_handle:
+            curl = curl_handle
+
+            try:  # Check the curl handle isn't closed, and reuse it if possible
+                curl.getinfo(curl.HTTP_CODE)
+                # Below clears the cookies & curl options for clean run
+                # But retains the DNS cache and connection pool
+                curl.reset()
+                curl.setopt(curl.COOKIELIST, "ALL")
+                req = requests.Request()
+            except pycurl.error:
+                req = requests.Request()
+
+        else:
+            req = requests.Request()
+
+        req.url = str(self.url)
+        req.timeout = timeout
+
+        is_unicoded = False
+        bod = self.body
+        if isinstance(bod, text_type):  # Encode unicode
+            bod = bod.encode('UTF-8')
+            is_unicoded = True
+
+        # Set read function for post/put bodies
+        if bod and len(bod) > 0:
+            req.data = bod
+
+        if self.auth_username and self.auth_password:
+            req.auth = (self.auth_username, self.auth_password)
+            if self.auth_type:
+                req.auth = self.auth_type
+
+        if self.method == u'POST':
+            req.method = 'POST'
+            # Required for some servers
+            if bod is not None:
+                req.params.update({'postfieldsize': len(bod)})
+            else:
+                req.params.update({'postfieldsize': 0})
+        elif self.method == u'PUT':
+            req.method = 'PUT'
+            # Required for some servers
+            if bod is not None:
+                req.params.update({'infilesize': len(bod)})
+            else:
+                req.params.update({'infilesize': 0})
+        elif self.method == u'PATCH':
+            req.data = bod
+            req.method = 'PATCH'
+            # Required for some servers
+            # I wonder: how compatible will this be?  It worked with Django but feels iffy.
+            if bod is not None:
+                req.params.update({'infilesize': len(bod)})
+            else:
+                req.params.update({'infilesize': 0})
+        elif self.method == u'DELETE':
+            req.method = 'DELETE'
+            if bod is not None:
+                req.data = bod
+                req.params.update({'postfieldsize': len(bod)})
+        elif self.method == u'HEAD':
+            req.method = 'HEAD'
+            req.params.update({'nobody': 1})
+        elif self.method and self.method.upper() != u'GET':  # Alternate HTTP methods
+            req.method = self.method.upper()
+            if bod is not None:
+                req.params.update({'postfields': bod})
+                req.params.update({'postfieldsize', len(bod)})
+        elif self.method == u'GET':
+            req.method = 'GET'
+
+        # Template headers as needed and convert headers dictionary to list of header entries
+        head = self.get_headers(context=context)
+        head = copy.copy(head)  # We're going to mutate it, need to copy
+
+        # Set charset if doing unicode conversion and not set explicitly
+        # TESTME
+        if is_unicoded and u'content-type' in head.keys():
+            content = head[u'content-type']
+            if u'charset' not in content:
+                head[u'content-type'] = content + u' ; charset=UTF-8'
+
+        if head:
+            headers = {str(headername): str(headervalue)
+                       for headername, headervalue in head.items()}
+        else:
+            headers = dict()
+        # Fix for expecting 100-continue from server, which not all servers
+        # will send!
+        headers["Expect"] = ''
+        headers["Connection"] = "close"
+        req.headers.update(headers)
+
+        # Set custom curl options, which are KEY:VALUE pairs matching the pycurl option names
+        # And the key/value pairs are set
+        if self.curl_options:
+            filterfunc = lambda x: x[0] is not None and x[1] is not None  # Must have key and value
+            for (key, value) in ifilter(filterfunc, self.curl_options.items()):
+                # getattr to look up constant for variable name
+                req.params({key: value})
+        return req
 
     @classmethod
     def parse_test(cls, base_url, node, input_test=None, test_path=None):
