@@ -46,6 +46,7 @@ logger = logging.getLogger('pyresttest.validators')
 # Binary comparison tests
 COMPARATORS = {
     'count_eq': lambda x, y: safe_length(x) == y,
+    'count_lte': lambda x, y: safe_length(x) <= y,
     'lt': operator.lt,
     'less_than': operator.lt,
     'le': operator.lt,
@@ -275,7 +276,7 @@ class HeaderExtractor(AbstractExtractor):
     def extract_internal(self, query=None, args=None, body=None, headers=None):
         low = query.lower()
         # Value for all matching key names
-        extracted = [y[1] for y in filter(lambda x: x[0] == low, headers)]
+        extracted = [y[1] for y in filter(lambda x: x[0] == query, headers)]
         if len(extracted) == 0:
             raise ValueError("Invalid header name {0}".format(query))
         elif len(extracted) == 1:

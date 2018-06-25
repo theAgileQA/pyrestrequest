@@ -345,6 +345,7 @@ Optionally, validators can return a Failure which evaluates to False, but suppli
 | Name(s)                                      |                Description                | Details for comparator(A, B)                                           |
 |----------------------------------------------|:-----------------------------------------:|------------------------------------------------------------------------|
 | 'count_eq','length_eq'                       | Check length of body/str or count of elements equals value      | length(A) == B   or -1 if cannot obtain length   |
+| 'count_lte'                                  | Check count of elements is equal or less than value             | length(A) <= B   or -1 if cannot obtain length   |
 | 'lt', 'less_than':                           | Less Than                                 | A < B                                                                  |
 | 'le', 'less_than_or_equal'                   | Less Than Or Equal To                     | A <= B                                                                 |
 | 'eq', 'equals'                               | Equals                                    | A == B                                                                 |

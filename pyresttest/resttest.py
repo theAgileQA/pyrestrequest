@@ -191,8 +191,15 @@ def parse_headers(header_string):
     # First line is request line, strip it out
     if not header_string:
         return list()
+
     try:
         request, headers = header_string.split('\r\n', 1)
+    except AttributeError:
+        header_list = []
+        for key, value in header_string.items():
+            temp = (key, value)
+            header_list.append(temp)
+        return header_list
     except:
         return list()
 
@@ -405,7 +412,7 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
     result.body = response.content
     body.close()
 
-    result.response_headers = str(response.headers)  # Per RFC 2616
+    result.response_headers = response.headers  # Per RFC 2616
     headers.close()
 
     response_code = response.status_code
