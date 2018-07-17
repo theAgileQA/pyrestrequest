@@ -3,6 +3,7 @@ import string
 import os
 import logging
 import sys
+import time
 
 from . import parsing
 from .parsing import flatten_dictionaries, lowercase_keys, safe_to_bool
@@ -68,6 +69,13 @@ def generator_random_int32():
     rand = random.Random()
     while (True):
         yield random.randint(0, INT32_MAX_VALUE)
+
+
+def generator_epoch_time():
+    """ Return epoch time generator for current system time """
+    epoch = time.time()
+    while (True):
+        yield time.time()
 
 
 def factory_generate_text(legal_characters=string.ascii_letters, min_length=8, max_length=8):
@@ -195,7 +203,8 @@ GENERATOR_TYPES = set(['env_variable',
                        'number_sequence',
                        'random_int',
                        'random_text',
-                       'fixed_sequence'
+                       'fixed_sequence',
+                       'epoch_time'
                        ])
 
 GENERATOR_PARSING = {'fixed_sequence': parse_fixed_sequence}
@@ -252,6 +261,8 @@ def parse_generator(configuration):
         return generator_random_int32()
     elif gen_type == u'random_text':
         return parse_random_text_generator(configuration)
+    elif gen_type == u'epoch_time':
+        return generator_epoch_time()
     elif gen_type in GENERATOR_TYPES:
         return GENERATOR_PARSING[gen_type](configuration)
     else:

@@ -47,6 +47,7 @@ logger = logging.getLogger('pyresttest.validators')
 COMPARATORS = {
     'count_eq': lambda x, y: safe_length(x) == y,
     'count_lte': lambda x, y: safe_length(x) <= y,
+    'count_gte': lambda x, y: safe_length(x) >= y,
     'lt': operator.lt,
     'less_than': operator.lt,
     'le': operator.lt,
