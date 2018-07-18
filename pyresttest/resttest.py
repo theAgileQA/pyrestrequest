@@ -340,9 +340,6 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
 
     req = templated_test.configure_request(
         timeout=test_config.timeout, context=my_context, curl_handle=curl_handle)
-    signed_header = oci_signer.request_signer()
-    req.auth = signed_header
-    req.headers.update(oci_signer.generate_headers())
 
     if test_config.verbose:
         req.verbose = True
@@ -352,17 +349,22 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
     headers = MyIO()
     body = MyIO()
 
-    req.headers.update(headers)
-    req.data = body
+    # req.headers.update(headers)
+    # req.data = body
 
     prepped = req.prepare()
+    prepped = oci_signer.request_signer(prepped)
+
+    # prepped.headers.update(signed_header.headers)
+    # prepped.body.update(signed_header.body)
+
     # else:
     #     curl = templated_test.configure_curl(
     #         timeout=test_config.timeout, context=my_context, curl_handle=curl_handle)
     #
     # reset the body, it holds values from previous runs otherwise
-    headers = MyIO()
-    body = MyIO()
+    # headers = MyIO()
+    # body = MyIO()
     #
     #     curl.setopt(pycurl.WRITEFUNCTION, body.write)
     #     curl.setopt(pycurl.HEADERFUNCTION, headers.write)
