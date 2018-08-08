@@ -114,6 +114,7 @@ class TestConfig:
     skip_term_colors = False  # Turn off output term colors
     # NEW
     oci_signature = True
+    oci_key = None
 
     # Binding and creation of generators
     variable_binds = None
@@ -353,7 +354,7 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
     # req.data = body
 
     prepped = req.prepare()
-    prepped = oci_signer.request_signer(prepped)
+    prepped = oci_signer.request_signer(prepped, TestConfig.oci_key)
 
     # prepped.headers.update(signed_header.headers)
     # prepped.body.update(signed_header.body)

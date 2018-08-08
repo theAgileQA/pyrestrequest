@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-import os
-
 # signature library
 import cryptography.hazmat.backends
 import cryptography.hazmat.primitives.serialization
@@ -14,15 +12,13 @@ import httpsig_cffi.sign
 import requests
 import six
 
-
 # get env variable set to target url
-client_key_id = os.environ.get("KEY_ID")
 backend = cryptography.hazmat.backends.default_backend()
 with open('/keys/oci_api_key.pem', mode='rb') as infile:
     apikey_pem = infile.read().strip()
 
 
-def request_signer(request):
+def request_signer(request, client_key_id):
     signature = SignedRequestAuth(client_key_id, apikey_pem)
     signed_request = signature.__call__(request)
     return signed_request
