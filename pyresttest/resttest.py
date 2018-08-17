@@ -115,8 +115,6 @@ class TestConfig:
     # NEW
     oci_signature = True
     oci_key = None
-    os.environ["LANG"] = "en_US.UTF-8"
-    os.environ["LANGUAGE"] = "en_US:en"
 
     # Binding and creation of generators
     variable_binds = None
