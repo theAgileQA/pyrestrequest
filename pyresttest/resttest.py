@@ -13,6 +13,7 @@ from email import message_from_string  # For headers handling
 from . import oci_signer
 import requests
 import time
+import urllib3
 
 try:
     from cStringIO import StringIO as MyIO
@@ -119,6 +120,8 @@ class TestConfig:
     # Binding and creation of generators
     variable_binds = None
     generators = None  # Map of generator name to generator function
+
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     def __str__(self):
         return json.dumps(self, default=safe_to_json)
@@ -343,9 +346,9 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
         timeout=test_config.timeout, context=my_context, curl_handle=curl_handle)
 
     if test_config.verbose:
-        req.verbose = True
+        session.verbose = True
     if test_config.ssl_insecure:
-        req.verify = False
+        session.verify = False
 
     headers = MyIO()
     body = MyIO()
