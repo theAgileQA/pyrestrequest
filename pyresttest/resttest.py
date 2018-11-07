@@ -508,11 +508,9 @@ def run_benchmark(benchmark, test_config=TestConfig(), context=None, *args, **kw
     benchmark_runs = benchmark.benchmark_runs
     message = ''  # Message is name of benchmark... print it?
 
-    if (benchmark_runs <= 0):
+    if benchmark_runs <= 0:
         raise Exception(
             "Invalid number of benchmark runs, must be > 0 :" + benchmark_runs)
-
-    result = TestResponse()
 
     # TODO create and use a curl-returning configuration function
     # TODO create and use a post-benchmark cleanup function
@@ -527,22 +525,32 @@ def run_benchmark(benchmark, test_config=TestConfig(), context=None, *args, **kw
     output.name = benchmark.name
     output.group = benchmark.group
     metricnames = list(benchmark.metrics)
+
     # Metric variable for curl, to avoid hash lookup for every metric name
     metricvalues = [METRICS[name] for name in metricnames]
+
     # Initialize arrays to store results for each metric
     results = [list() for x in xrange(0, len(metricnames))]
-    curl = pycurl.Curl()
 
     # Benchmark warm-up to allow for caching, JIT compiling, on client
     logger.info('Warmup: ' + message + ' started')
     for x in xrange(0, warmup_runs):
+        session = requests.Session()
         benchmark.update_context_before(my_context)
         templated = benchmark.realize(my_context)
-        curl = templated.configure_curl(
-            timeout=test_config.timeout, context=my_context, curl_handle=curl)
         # Do not store actual response body at all.
-        curl.setopt(pycurl.WRITEFUNCTION, lambda x: None)
-        curl.perform()
+        session.stream = True
+        req = templated.configure_request(
+            timeout=test_config.timeout, context=my_context, curl_handle=session)
+
+        if test_config.ssl_insecure:
+            session.verify = False
+
+        prepped = req.prepare()
+        prepped = oci_signer.request_signer(prepped, TestConfig.oci_key)
+
+        session.send(prepped)
+        session.close()
 
     logger.info('Warmup: ' + message + ' finished')
 
@@ -550,24 +558,33 @@ def run_benchmark(benchmark, test_config=TestConfig(), context=None, *args, **kw
 
     for x in xrange(0, benchmark_runs):  # Run the actual benchmarks
         # Setup benchmark
+        session = requests.Session()
         benchmark.update_context_before(my_context)
         templated = benchmark.realize(my_context)
-        curl = templated.configure_curl(
-            timeout=test_config.timeout, context=my_context, curl_handle=curl)
         # Do not store actual response body at all.
-        curl.setopt(pycurl.WRITEFUNCTION, lambda x: None)
+        session.stream = True
+        req = templated.configure_request(
+            timeout=test_config.timeout, context=my_context, curl_handle=session)
+
+        if test_config.ssl_insecure:
+            session.verify = False
+
+        prepped = req.prepare()
+        prepped = oci_signer.request_signer(prepped, TestConfig.oci_key)
 
         try:  # Run the curl call, if it errors, then add to failure counts for benchmark
-            curl.perform()
-        except Exception:
+            response = session.send(prepped)
+        except Exception as s:
             output.failures = output.failures + 1
-            curl.close()
-            curl = pycurl.Curl()
+            session.close()
             continue  # Skip metrics collection
 
         # Get all metrics values for this run, and store to metric lists
         for i in xrange(0, len(metricnames)):
-            results[i].append(curl.getinfo(metricvalues[i]))
+            # results[i].append(curl.getinfo(metricvalues[i]))
+            value = metricvalues[i]
+            results[i].append(value(response))
+        session.close()
 
     logger.info('Benchmark: ' + message + ' ending')
 
@@ -658,6 +675,7 @@ def write_benchmark_csv(file_out, benchmark_result, benchmark, test_config=TestC
     if benchmark_result.aggregates:
         writer.writerow(('Aggregates', ''))
         writer.writerows(benchmark_result.aggregates)
+
 
 # Method to call when writing benchmark file
 OUTPUT_METHODS = {u'csv': write_benchmark_csv, u'json': write_benchmark_json}
@@ -823,6 +841,7 @@ def register_extensions(modules):
             raise ImportError(
                 "Extension to register did not contain any registries: {0}".format(ext))
 
+
 # AUTOIMPORTS, these should run just before the main method, to ensure
 # everything else is loaded
 try:
@@ -830,14 +849,17 @@ try:
     register_extensions('pyresttest.ext.validator_jsonschema')
 except ImportError as ie:
     logging.debug(
-        "Failed to load jsonschema validator, make sure the jsonschema module is installed if you wish to use schema validators.")
+        "Failed to load jsonschema validator,"
+        " make sure the jsonschema module is installed if you wish to use schema validators.")
 
 try:
     import jmespath
     register_extensions('pyresttest.ext.extractor_jmespath')
 except ImportError as ie:
     logging.debug(
-        "Failed to load jmespath extractor, make sure the jmespath module is installed if you wish to use jmespath extractor.")
+        "Failed to load jmespath extractor,"
+        " make sure the jmespath module is installed if you wish to use jmespath extractor.")
+
 
 def main(args):
     """
@@ -849,7 +871,7 @@ def main(args):
         print_bodies  - OPTIONAL - print response body
         print_headers  - OPTIONAL - print response headers
         log           - OPTIONAL - set logging level {debug,info,warning,error,critical} (default=warning)
-        interactive   - OPTIONAL - mode that prints info before and after test exectuion and pauses for user input for each test
+        interactive   - OPTIONAL - mode that prints info before and after test execution and pauses for user input for each test
         absolute_urls - OPTIONAL - mode that treats URLs in tests as absolute/full URLs instead of relative URLs
         skip_term_colors - OPTIONAL - mode that turn off the output term colors
     """
@@ -957,7 +979,8 @@ def parse_command_line_args(args_in):
         else:
             parser.print_help()
             parser.error(
-                "wrong number of arguments, need both url and test filename, either as 1st and 2nd parameters or via --url and --test")
+                "wrong number of arguments, need both url and test filename,"
+                " either as 1st and 2nd parameters or via --url and --test")
 
     # So modules can be loaded from current folder
     args['cwd'] = os.path.realpath(os.path.abspath(os.getcwd()))
@@ -968,6 +991,7 @@ def command_line_run(args_in):
     args = parse_command_line_args(args_in)
     main(args)
 
+
 # Allow import into another module without executing the main method
-if(__name__ == '__main__'):
+if __name__ == '__main__':
     command_line_run(sys.argv[1:])

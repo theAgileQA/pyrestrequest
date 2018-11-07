@@ -57,6 +57,7 @@ HTTP_METHODS = {u'GET': pycurl.HTTPGET,
                 u'POST': pycurl.POST,
                 u'DELETE': 'DELETE'}
 
+
 # Parsing helper functions
 def coerce_to_string(val):
     if isinstance(val, text_type):
@@ -68,6 +69,7 @@ def coerce_to_string(val):
     else:
         raise TypeError("Input {0} is not a string or integer, and it needs to be!".format(val))
 
+
 def coerce_string_to_ascii(val):
     if isinstance(val, text_type):
         return val.encode('ascii')
@@ -75,6 +77,7 @@ def coerce_string_to_ascii(val):
         return val
     else:
         raise TypeError("Input {0} is not a string, string expected".format(val))
+
 
 def coerce_http_method(val):
     myval = val
@@ -84,12 +87,14 @@ def coerce_http_method(val):
         myval = myval.decode('utf-8')
     return myval.upper()
 
+
 def coerce_list_of_ints(val):
     """ If single value, try to parse as integer, else try to parse as list of integer """
     if isinstance(val, list):
         return [int(x) for x in val]
     else:
         return [int(val)]
+
 
 class Test(object):
     """ Describes a REST test """
@@ -398,16 +403,17 @@ class Test(object):
         """ Create and mostly configure a request object for test, reusing existing if possible """
 
         if curl_handle:
-            curl = curl_handle
+            req = curl_handle
 
             try:  # Check the curl handle isn't closed, and reuse it if possible
-                curl.getinfo(curl.HTTP_CODE)
+                # curl.getinfo(curl.HTTP_CODE)
                 # Below clears the cookies & curl options for clean run
                 # But retains the DNS cache and connection pool
-                curl.reset()
-                curl.setopt(curl.COOKIELIST, "ALL")
+                # curl.reset()
+                # curl.setopt(curl.COOKIELIST, "ALL")
+                req.cookies.clear()
                 req = requests.Request()
-            except pycurl.error:
+            except:
                 req = requests.Request()
 
         else:
@@ -433,27 +439,27 @@ class Test(object):
 
         if self.method == u'POST':
             req.method = 'POST'
-            # Required for some servers
-            if bod is not None:
-                req.params.update({'postfieldsize': len(bod)})
-            else:
-                req.params.update({'postfieldsize': 0})
+            # # Required for some servers
+            # if bod is not None:
+            #     req.data = {'postfieldsize': len(bod)}
+            # else:
+            #     req.data = {'postfieldsize': 0}
         elif self.method == u'PUT':
             req.method = 'PUT'
             # Required for some servers
-            if bod is not None:
-                req.params.update({'infilesize': len(bod)})
-            else:
-                req.params.update({'infilesize': 0})
+            # if bod is not None:
+            #     req.params.update({'infilesize': len(bod)})
+            # else:
+            #     req.params.update({'infilesize': 0})
         elif self.method == u'PATCH':
             req.data = bod
             req.method = 'PATCH'
             # Required for some servers
             # I wonder: how compatible will this be?  It worked with Django but feels iffy.
-            if bod is not None:
-                req.params.update({'infilesize': len(bod)})
-            else:
-                req.params.update({'infilesize': 0})
+            # if bod is not None:
+            #     req.params.update({'infilesize': len(bod)})
+            # else:
+            #     req.params.update({'infilesize': 0})
         elif self.method == u'DELETE':
             req.method = 'DELETE'
             if bod is not None:

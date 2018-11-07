@@ -75,7 +75,7 @@ def generator_epoch_time():
     """ Return epoch time generator for current system time """
     epoch = time.time()
     while (True):
-        yield time.time()
+        yield int(time.time())
 
 
 def factory_generate_text(legal_characters=string.ascii_letters, min_length=8, max_length=8):
