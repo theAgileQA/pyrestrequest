@@ -207,9 +207,9 @@ def realize_partial(self, context=None):
 
 
 def configure_request(self, timeout=tests.DEFAULT_TIMEOUT, context=None, curl_handle=None):
-    curl = super().configure_request(self, timeout=timeout,
-                                     context=context, curl_handle=curl_handle)
-    return curl
+    req = super().configure_request(self, timeout=timeout,
+                                    context=context, curl_handle=curl_handle)
+    return req
 
 
 def parse_benchmark(base_url, node):
@@ -255,7 +255,7 @@ def parse_benchmark(base_url, node):
                                     "Invalid aggregate input: non-string aggregate name")
                             # TODO unicode-safe this
                             benchmark.add_metric(tests.coerce_to_string(metricname),
-                                tests.coerce_to_string(aggregate))
+                                                 tests.coerce_to_string(aggregate))
 
                     elif isinstance(metric, basestring):
                         benchmark.add_metric(tests.coerce_to_string(metric))
