@@ -1,12 +1,14 @@
 import math
 import json
 import pycurl
+import requests
 import sys
 
 from . import tests
 from .tests import Test
 from . import parsing
 from .parsing import *
+from .metric import Metrics
 
 # Python 2/3 switches
 if sys.version_info[0] > 2:
@@ -33,44 +35,49 @@ Encapsulates logic related to benchmarking
 METRICS = {
     # Timing info, precisely in order from start to finish
     # The time it took from the start until the name resolving was completed.
-    'namelookup_time': pycurl.NAMELOOKUP_TIME,
+    'namelookup_time': Metrics.namelookup_time(),
+    # 'namelookup_time': requests.Session.get,
 
     # The time it took from the start until the connect to the remote host (or
     # proxy) was completed.
-    'connect_time': pycurl.CONNECT_TIME,
+    'connect_time': Metrics.connect_time(),
 
     # The time it took from the start until the SSL connect/handshake with the
     # remote host was completed.
-    'appconnect_time': pycurl.APPCONNECT_TIME,
+    'appconnect_time': Metrics.appconnect_time(),
 
     # The time it took from the start until the file transfer is just about to begin.
     # This includes all pre-transfer commands and negotiations that are
     # specific to the particular protocol(s) involved.
-    'pretransfer_time': pycurl.PRETRANSFER_TIME,
+    'pretransfer_time': Metrics.pretransfer_time(),
 
     # The time it took from the start until the first byte is received by
     # libcurl.
-    'starttransfer_time': pycurl.STARTTRANSFER_TIME,
+    'starttransfer_time': Metrics.starttransfer_time(),
 
     # The time it took for all redirection steps include name lookup, connect, pretransfer and transfer
     # before final transaction was started. So, this is zero if no redirection
     # took place.
-    'redirect_time': pycurl.REDIRECT_TIME,
+    'redirect_time': Metrics.redirect_time(),
 
     # Total time of the previous request.
-    'total_time': pycurl.TOTAL_TIME,
-
+    'total_time':
+        lambda x: Metrics.total_time(x),
 
     # Transfer sizes and speeds
-    'size_download': pycurl.SIZE_DOWNLOAD,
-    'size_upload': pycurl.SIZE_UPLOAD,
-    'request_size': pycurl.REQUEST_SIZE,
-    'speed_download': pycurl.SPEED_DOWNLOAD,
-    'speed_upload': pycurl.SPEED_UPLOAD,
+    'size_download': Metrics.size_download(),
+    'size_upload':
+        lambda x: Metrics.size_upload(x),
+    'request_size':
+        lambda x: Metrics.request_size(x),
+
+    'speed_download': Metrics.speed_download(),
+    'speed_upload': Metrics.speed_upload(),
 
     # Connection counts
-    'redirect_count': pycurl.REDIRECT_COUNT,
-    'num_connects': pycurl.NUM_CONNECTS
+    'redirect_count':
+        lambda x: Metrics.redirect_count(x),
+    'num_connects': Metrics.num_connects()
 }
 
 # Map statistical aggregate to the function to use to perform the
@@ -199,12 +206,10 @@ def realize_partial(self, context=None):
     pass
 
 
-def configure_curl(self, timeout=tests.DEFAULT_TIMEOUT, context=None, curl_handle=None):
-    curl = super().configure_curl(self, timeout=timeout,
-                                  context=context, curl_handle=curl_handle)
-    # Simulate results from different users hitting server
-    curl.setopt(pycurl.FORBID_REUSE, 1)
-    return curl
+def configure_request(self, timeout=tests.DEFAULT_TIMEOUT, context=None, curl_handle=None):
+    req = super().configure_request(self, timeout=timeout,
+                                    context=context, curl_handle=curl_handle)
+    return req
 
 
 def parse_benchmark(base_url, node):
@@ -250,7 +255,7 @@ def parse_benchmark(base_url, node):
                                     "Invalid aggregate input: non-string aggregate name")
                             # TODO unicode-safe this
                             benchmark.add_metric(tests.coerce_to_string(metricname),
-                                tests.coerce_to_string(aggregate))
+                                                 tests.coerce_to_string(aggregate))
 
                     elif isinstance(metric, basestring):
                         benchmark.add_metric(tests.coerce_to_string(metric))

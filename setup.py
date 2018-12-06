@@ -5,7 +5,7 @@ except ImportError:
     from distutils.core import setup
 
 # Future is needed for pip distribution for python 3 support
-dependencies = ['pyyaml', 'pycurl']
+dependencies = ['pyyaml', 'pycurl', 'requests']
 test_dependencies = ['django==1.6.5','django-tastypie==0.12.1','jsonpath','jmespath']
 
 # Add additional compatibility shims
@@ -31,6 +31,7 @@ setup(name='pyresttest',
           'Programming Language :: Python :: 2.7',
           'Programming Language :: Python :: 3.4',
           'Programming Language :: Python :: 3.5',
+          'Programming Language :: Python :: 3.6',
           'Topic :: Software Development :: Testing',
           'Topic :: Software Development :: Quality Assurance',
           'Topic :: Utilities'
@@ -41,7 +42,7 @@ setup(name='pyresttest',
                   'pyresttest.six',
                   'pyresttest.ext.validator_jsonschema',
                   'pyresttest.ext.extractor_jmespath',
-                  'pyresttest.oci_signer'],
+                  'pyresttest.oci_signer', 'pyresttest.metric'],
       license='Apache License, Version 2.0',
       install_requires=dependencies,
       tests_require=test_dependencies,
