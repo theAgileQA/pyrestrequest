@@ -3,7 +3,6 @@ import sys
 import os
 import traceback
 import yaml
-import pycurl
 import json
 import csv
 import logging
@@ -359,26 +358,6 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
     prepped = req.prepare()
     prepped = oci_signer.request_signer(prepped, TestConfig.oci_key)
 
-    # prepped.headers.update(signed_header.headers)
-    # prepped.body.update(signed_header.body)
-
-    # else:
-    #     curl = templated_test.configure_curl(
-    #         timeout=test_config.timeout, context=my_context, curl_handle=curl_handle)
-    #
-    # reset the body, it holds values from previous runs otherwise
-    # headers = MyIO()
-    # body = MyIO()
-    #
-    #     curl.setopt(pycurl.WRITEFUNCTION, body.write)
-    #     curl.setopt(pycurl.HEADERFUNCTION, headers.write)
-    #
-    #     if test_config.verbose:
-    #         curl.setopt(pycurl.VERBOSE, True)
-    #     if test_config.ssl_insecure:
-    #         curl.setopt(pycurl.SSL_VERIFYPEER, 0)
-    #         curl.setopt(pycurl.SSL_VERIFYHOST, 0)
-
     result.passed = None
 
     if test_config.interactive:
@@ -695,7 +674,7 @@ def run_testsets(testsets):
     group_failure_counts = dict()
     total_failures = 0
     myinteractive = False
-    curl_handle = pycurl.Curl()
+    curl_handle = requests.Request()
 
     for testset in testsets:
         mytests = testset.tests

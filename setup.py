@@ -5,8 +5,8 @@ except ImportError:
     from distutils.core import setup
 
 # Future is needed for pip distribution for python 3 support
-dependencies = ['pyyaml', 'pycurl', 'requests']
-test_dependencies = ['django==1.6.5','django-tastypie==0.12.1','jsonpath','jmespath']
+dependencies = ['pyyaml', 'requests']
+test_dependencies = ['django==1.6.5', 'django-tastypie==0.12.1', 'jsonpath', 'jmespath']
 
 # Add additional compatibility shims
 if sys.version_info[0] > 2:
@@ -18,7 +18,7 @@ else:
 setup(name='pyresttest',
       version='1.7.2.dev.oci.1',
       description='Python RESTful API Testing & Microbenchmarking Tool',
-      long_description='Python RESTful API Testing & Microbenchmarking Tool \n Documentation at https://github.com/svanoort/pyresttest',
+      long_description='Python RESTful API Testing & Microbenchmarking Tool',
       author='Sam Van Oort, revised by Tamara Macul Mendes at OCI',
       author_email='mara.macul.mendes@oracle.com',
       url='https://github.com/svanoort/pyresttest',
