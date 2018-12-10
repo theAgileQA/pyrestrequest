@@ -1,8 +1,5 @@
 import math
 import json
-import pycurl
-import requests
-import sys
 
 from . import tests
 from .tests import Test
@@ -27,10 +24,7 @@ Encapsulates logic related to benchmarking
 """
 
 
-# Curl metrics for benchmarking, key is name in config file, value is pycurl variable
-# Taken from pycurl docs, this is libcurl variable minus the CURLINFO prefix
-# Descriptions of the timing variables are taken from libcurl docs:
-#   http://curl.haxx.se/libcurl/c/curl_easy_getinfo.html
+# Request metrics for benchmarking, key is name in config file, value is request variable
 
 METRICS = {
     # Timing info, precisely in order from start to finish

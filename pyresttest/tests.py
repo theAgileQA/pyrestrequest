@@ -2,7 +2,6 @@ import string
 import os
 import copy
 import json
-import pycurl
 import sys
 import requests
 
@@ -45,17 +44,17 @@ This module implements the internal responsibilities of a test object:
 - Parsing of test configuration from results of YAML read
 """
 
-BASECURL = pycurl.Curl()  # Used for some validation/parsing
+BASECURL = requests.Request()  # Used for some validation/parsing
 
 DEFAULT_TIMEOUT = 10  # Seconds
 
 # Map HTTP method names to curl methods
 # Kind of obnoxious that it works this way...
-HTTP_METHODS = {u'GET': pycurl.HTTPGET,
-                u'PUT': pycurl.UPLOAD,
-                u'PATCH': pycurl.POSTFIELDS,
-                u'POST': pycurl.POST,
-                u'DELETE': 'DELETE'}
+HTTP_METHODS = {u'GET': requests.Request(method='GET'),
+                u'PUT': requests.Request(method='PUT'),
+                u'PATCH': requests.Request(method='PATCH'),
+                u'POST': requests.Request(method='POST'),
+                u'DELETE': requests.Request(method='DELETE')}
 
 
 # Parsing helper functions
@@ -110,7 +109,7 @@ class Test(object):
     failures = None
     auth_username = None
     auth_password = None
-    auth_type = pycurl.HTTPAUTH_BASIC
+    auth_type = requests.Request(auth_username, auth_password)
     delay = 0
     curl_options = None
 
@@ -292,113 +291,6 @@ class Test(object):
     def __str__(self):
         return json.dumps(self, default=safe_to_json)
 
-    def configure_curl(self, timeout=DEFAULT_TIMEOUT, context=None, curl_handle=None):
-        """ Create and mostly configure a curl object for test, reusing existing if possible """
-
-        if curl_handle:
-            curl = curl_handle
-
-            try:  # Check the curl handle isn't closed, and reuse it if possible
-                curl.getinfo(curl.HTTP_CODE)                
-                # Below clears the cookies & curl options for clean run
-                # But retains the DNS cache and connection pool
-                curl.reset()
-                curl.setopt(curl.COOKIELIST, "ALL")
-            except pycurl.error:
-                curl = pycurl.Curl()
-            
-        else:
-            curl = pycurl.Curl()
-
-        # curl.setopt(pycurl.VERBOSE, 1)  # Debugging convenience
-        curl.setopt(curl.URL, str(self.url))
-        curl.setopt(curl.TIMEOUT, timeout)
-
-        is_unicoded = False
-        bod = self.body
-        if isinstance(bod, text_type):  # Encode unicode
-            bod = bod.encode('UTF-8')
-            is_unicoded = True
-
-        # Set read function for post/put bodies
-        if bod and len(bod) > 0:
-            curl.setopt(curl.READFUNCTION, MyIO(bod).read)
-
-        if self.auth_username and self.auth_password:
-            curl.setopt(pycurl.USERPWD, 
-                parsing.encode_unicode_bytes(self.auth_username) + b':' + 
-                parsing.encode_unicode_bytes(self.auth_password))
-            if self.auth_type:
-                curl.setopt(pycurl.HTTPAUTH, self.auth_type)
-
-        if self.method == u'POST':
-            curl.setopt(HTTP_METHODS[u'POST'], 1)
-            # Required for some servers
-            if bod is not None:
-                curl.setopt(pycurl.POSTFIELDSIZE, len(bod))
-            else:
-                curl.setopt(pycurl.POSTFIELDSIZE, 0)
-        elif self.method == u'PUT':
-            curl.setopt(HTTP_METHODS[u'PUT'], 1)
-            # Required for some servers
-            if bod is not None:
-                curl.setopt(pycurl.INFILESIZE, len(bod))
-            else:
-                curl.setopt(pycurl.INFILESIZE, 0)
-        elif self.method == u'PATCH':
-            curl.setopt(curl.POSTFIELDS, bod)
-            curl.setopt(curl.CUSTOMREQUEST, 'PATCH')
-            # Required for some servers
-            # I wonder: how compatible will this be?  It worked with Django but feels iffy.
-            if bod is not None:
-                curl.setopt(pycurl.INFILESIZE, len(bod))
-            else:
-                curl.setopt(pycurl.INFILESIZE, 0)
-        elif self.method == u'DELETE':
-            curl.setopt(curl.CUSTOMREQUEST, 'DELETE')
-            if bod is not None:
-                curl.setopt(pycurl.POSTFIELDS, bod)
-                curl.setopt(pycurl.POSTFIELDSIZE, len(bod))
-        elif self.method == u'HEAD':
-            curl.setopt(curl.NOBODY, 1)
-            curl.setopt(curl.CUSTOMREQUEST, 'HEAD')
-        elif self.method and self.method.upper() != 'GET':  # Alternate HTTP methods
-            curl.setopt(curl.CUSTOMREQUEST, self.method.upper())
-            if bod is not None:
-                curl.setopt(pycurl.POSTFIELDS, bod)
-                curl.setopt(pycurl.POSTFIELDSIZE, len(bod))
-
-        # Template headers as needed and convert headers dictionary to list of header entries
-        head = self.get_headers(context=context)
-        head = copy.copy(head)  # We're going to mutate it, need to copy
-
-        # Set charset if doing unicode conversion and not set explicitly
-        # TESTME
-        if is_unicoded and u'content-type' in head.keys():
-            content = head[u'content-type']
-            if u'charset' not in content:
-                head[u'content-type'] = content + u' ; charset=UTF-8'
-
-        if head:
-            headers = [str(headername) + ':' + str(headervalue)
-                       for headername, headervalue in head.items()]
-        else:
-            headers = list()
-        # Fix for expecting 100-continue from server, which not all servers
-        # will send!
-        headers.append("Expect:")
-        headers.append("Connection: close")
-        curl.setopt(curl.HTTPHEADER, headers)
-
-        # Set custom curl options, which are KEY:VALUE pairs matching the pycurl option names
-        # And the key/value pairs are set
-        if self.curl_options:
-            filterfunc = lambda x: x[0] is not None and x[1] is not None  # Must have key and value
-            for (key, value) in ifilter(filterfunc, self.curl_options.items()):
-                # getattr to look up constant for variable name
-                curl.setopt(getattr(curl, key), value)
-        return curl
-
     def configure_request(self, timeout=DEFAULT_TIMEOUT, context=None, curl_handle=None):
         """ Create and mostly configure a request object for test, reusing existing if possible """
 
@@ -498,7 +390,7 @@ class Test(object):
         headers["Connection"] = "close"
         req.headers.update(headers)
 
-        # Set custom curl options, which are KEY:VALUE pairs matching the pycurl option names
+        # Set custom curl options, which are KEY:VALUE pairs matching the request option names
         # And the key/value pairs are set
         if self.curl_options:
             filterfunc = lambda x: x[0] is not None and x[1] is not None  # Must have key and value
