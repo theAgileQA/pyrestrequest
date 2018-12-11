@@ -1,3 +1,4 @@
+""" json validation module. """
 import traceback
 import json
 
@@ -11,18 +12,20 @@ try:  # First try to load pyresttest from global namespace
     from pyresttest import validators
     from pyresttest import binding
     from pyresttest import parsing
-    from pyresttest import contenthandling    
+    from pyresttest import contenthandling
 except ImportError:  # Then try a relative import if possible
     from .. import validators
     from .. import binding
     from .. import parsing
     from .. import contenthandling
 
+
 class JsonSchemaValidator(validators.AbstractValidator):
     """ Json schema validator using the jsonschema library """
     schema = None
 
     def validate(self, body=None, headers=None, context=None):
+        """ performs validation of json schema """
         schema_text = self.schema.get_content(context=context)
         schema = yaml.safe_load(schema_text)
         # TODO add caching of parsed schema
@@ -35,22 +38,29 @@ class JsonSchemaValidator(validators.AbstractValidator):
                 parsed_body = str(body, 'utf-8')
             jsonschema.validate(json.loads(parsed_body), schema)
             return True
-        except jsonschema.exceptions.ValidationError as ve:
+        except jsonschema.exceptions.ValidationError:
             trace = traceback.format_exc()
-            return validators.Failure(message="JSON Schema Validation Failed", details=trace, validator=self, failure_type=validators.FAILURE_VALIDATOR_EXCEPTION)
+            return validators.Failure(message="JSON Schema Validation Failed",
+                                      details=trace,
+                                      validator=self,
+                                      failure_type=validators.FAILURE_VALIDATOR_EXCEPTION)
 
-    def get_readable_config(self, context=None):
+    @staticmethod
+    def get_readable_config():
+        """ returns generic info string """
         return "JSON schema validation"
 
     @classmethod
     def parse(cls, config):
+        """ parses out """
         validator = JsonSchemaValidator()
         config = parsing.lowercase_keys(config)
         if 'schema' not in config:
             raise ValueError(
                 "Cannot create schema validator without a 'schema' configuration element!")
-        validator.schema = contenthandling.ContentHandler.parse_content(config[
-                                                                        'schema'])
+        validator.schema = contenthandling.ContentHandler.parse_content(
+            config['schema'])
         return validator
+
 
 VALIDATORS = {'json_schema': JsonSchemaValidator.parse}

@@ -1,21 +1,27 @@
-import string
-import os
+"""
+Pull out the Test objects and logic associated with them
+This module implements the internal responsibilities of a test object:
+- Test parameter/configuration storage
+- Templating for tests
+- Parsing of test configuration from results of YAML read
+"""
 import copy
 import json
-import sys
 import requests
 
-
-from . import contenthandling
 from .contenthandling import ContentHandler
 from . import validators
-from . import parsing
 from .parsing import *
+
+# Python 3 compatibility shims
+from .six import binary_type
+from .six import text_type
+from .six.moves import filter as ifilter
 
 # Find the best implementation available on this platform
 try:
     from cStringIO import StringIO as MyIO
-except:
+except ImportError:
     try:
         from StringIO import StringIO as MyIO
     except ImportError:
@@ -29,22 +35,8 @@ if PYTHON_MAJOR_VERSION > 2:
 else:
     import urlparse
 
-# Python 3 compatibility shims
-from . import six
-from .six import binary_type
-from .six import text_type
-from .six import iteritems
-from .six.moves import filter as ifilter
 
-"""
-Pull out the Test objects and logic associated with them
-This module implements the internal responsibilities of a test object:
-- Test parameter/configuration storage
-- Templating for tests
-- Parsing of test configuration from results of YAML read
-"""
-
-BASECURL = requests.Request()  # Used for some validation/parsing
+BASE_REQ = requests.Request()  # Used for some validation/parsing
 
 DEFAULT_TIMEOUT = 10  # Seconds
 
@@ -59,6 +51,7 @@ HTTP_METHODS = {u'GET': requests.Request(method='GET'),
 
 # Parsing helper functions
 def coerce_to_string(val):
+    """ parse input into string format """
     if isinstance(val, text_type):
         return val
     elif isinstance(val, int):
@@ -70,6 +63,7 @@ def coerce_to_string(val):
 
 
 def coerce_string_to_ascii(val):
+    """ parse input into ascii char format """
     if isinstance(val, text_type):
         return val.encode('ascii')
     elif isinstance(val, binary_type):
@@ -79,9 +73,11 @@ def coerce_string_to_ascii(val):
 
 
 def coerce_http_method(val):
+    """ parse input into a HTTP method type """
     myval = val
     if not isinstance(myval, basestring) or len(val) == 0:
-        raise TypeError("Invalid HTTP method name: input {0} is not a string or has 0 length".format(val))
+        raise TypeError(
+            "Invalid HTTP method name: input {0} is not a string or has 0 length".format(val))
     if isinstance(myval, binary_type):
         myval = myval.decode('utf-8')
     return myval.upper()
@@ -122,6 +118,7 @@ class Test(object):
 
     @staticmethod
     def has_contains():
+        """ returns all validators """
         return 'contains' in validators.VALIDATORS
 
     def ninja_copy(self):
@@ -148,7 +145,6 @@ class Test(object):
     def realize_template(self, variable_name, context):
         """ Realize a templated value, using variables from context
             Returns None if no template is set for that variable """
-        val = None
         if context is None or self.templates is None or variable_name not in self.templates:
             return None
         return self.templates[variable_name].safe_substitute(context.get_values())
@@ -208,7 +204,9 @@ class Test(object):
         vals = context.get_values()
 
         def template_tuple(tuple_input):
-            return (string.Template(str(tuple_item)).safe_substitute(vals) for tuple_item in tuple_input)
+            """ returns tuple format of headers """
+            return (string.Template(str(tuple_item)).safe_substitute(vals)
+                    for tuple_item in tuple_input)
         return dict(map(template_tuple, self._headers.items()))
 
     headers = property(get_headers, set_headers, None,
@@ -297,12 +295,9 @@ class Test(object):
         if curl_handle:
             req = curl_handle
 
-            try:  # Check the curl handle isn't closed, and reuse it if possible
-                # curl.getinfo(curl.HTTP_CODE)
-                # Below clears the cookies & curl options for clean run
+            try:  # Check the session isn't closed, and reuse it if possible
+                # Below clears the cookies & request options for clean run
                 # But retains the DNS cache and connection pool
-                # curl.reset()
-                # curl.setopt(curl.COOKIELIST, "ALL")
                 req.cookies.clear()
                 req = requests.Request()
             except:
@@ -331,27 +326,11 @@ class Test(object):
 
         if self.method == u'POST':
             req.method = 'POST'
-            # # Required for some servers
-            # if bod is not None:
-            #     req.data = {'postfieldsize': len(bod)}
-            # else:
-            #     req.data = {'postfieldsize': 0}
         elif self.method == u'PUT':
             req.method = 'PUT'
-            # Required for some servers
-            # if bod is not None:
-            #     req.params.update({'infilesize': len(bod)})
-            # else:
-            #     req.params.update({'infilesize': 0})
         elif self.method == u'PATCH':
             req.data = bod
             req.method = 'PATCH'
-            # Required for some servers
-            # I wonder: how compatible will this be?  It worked with Django but feels iffy.
-            # if bod is not None:
-            #     req.params.update({'infilesize': len(bod)})
-            # else:
-            #     req.params.update({'infilesize': 0})
         elif self.method == u'DELETE':
             req.method = 'DELETE'
             if bod is not None:
@@ -373,7 +352,6 @@ class Test(object):
         head = copy.copy(head)  # We're going to mutate it, need to copy
 
         # Set charset if doing unicode conversion and not set explicitly
-        # TESTME
         if is_unicoded and u'content-type' in head.keys():
             content = head[u'content-type']
             if u'charset' not in content:
@@ -404,12 +382,13 @@ class Test(object):
         """ Create or modify a test, input_test, using configuration in node, and base_url
         If no input_test is given, creates a new one
 
-        Test_path gives path to test file, used for setting working directory in setting up input bodies
+        Test_path gives path to test file,
+        used for setting working directory in setting up input bodies
 
         Uses explicitly specified elements from the test input structure
         to make life *extra* fun, we need to handle list <-- > dict transformations.
 
-        This is to say: list(dict(),dict()) or dict(key,value) -->  dict() for some elements
+        This is to say: list(dict(),dict()) or dict(key,value) --> dict() for some elements
 
         Accepted structure must be a single dictionary of key-value pairs for test configuration """
 
@@ -420,31 +399,18 @@ class Test(object):
         # Clean up for easy parsing
         node = lowercase_keys(flatten_dictionaries(node))
 
-
-
         # Simple table of variable name, coerce function, and optionally special store function
         CONFIG_ELEMENTS = {
             # Simple variables
             u'auth_username': [coerce_string_to_ascii],
             u'auth_password': [coerce_string_to_ascii],
-            u'method': [coerce_http_method], # HTTP METHOD
-            u'delay': [lambda x: int(x)], # Delay before running
-            u'group': [coerce_to_string], # Test group name
+            u'method': [coerce_http_method],  # HTTP METHOD
+            u'delay': [lambda x: int(x)],  # Delay before running
+            u'group': [coerce_to_string],  # Test group name
             u'name': [coerce_to_string],  # Test name
             u'expected_status': [coerce_list_of_ints],
-            u'delay': [lambda x: int(x)],
             u'stop_on_failure': [safe_to_bool],
-
-            # Templated / special handling
-            #u'url': [coerce_templatable, set_templated),  # TODO: special handling for templated content, sigh
             u'body': [ContentHandler.parse_content]
-            #u'headers': [],
-
-            # COMPLEX PARSE OPTIONS
-            #u'extract_binds':[],  # Context variable-to-extractor output binding
-            #u'variable_binds': [],  # Context variable to value binding
-            #u'generator_binds': [],  # Context variable to generator output binding
-            #u'validators': [],  # Validation functions to run
         }
 
         def use_config_parser(configobject, configelement, configvalue):
@@ -469,7 +435,6 @@ class Test(object):
 
             # Configure test using configuration elements
             if configelement == u'url':
-                temp = configvalue
                 if isinstance(configvalue, dict):
                     # Template is used for URL
                     val = lowercase_keys(configvalue)[u'template']
@@ -490,15 +455,16 @@ class Test(object):
                 for variable_name, extractor in binds.items():
                     if not isinstance(extractor, dict) or len(extractor) == 0:
                         raise TypeError(
-                            "Extractors must be defined as maps of extractorType:{configs} with 1 entry")
+                            "Extractors must be defined as maps of extractorType:"
+                            "{configs} with 1 entry")
                     if len(extractor) > 1:
                         raise ValueError(
                             "Cannot define multiple extractors for given variable name")
 
                     # Safe because length can only be 1
                     for extractor_type, extractor_config in extractor.items():
-                        mytest.extract_binds[variable_name] = validators.parse_extractor(extractor_type, extractor_config)
-
+                        mytest.extract_binds[variable_name] = \
+                            validators.parse_extractor(extractor_type, extractor_config)
 
             elif configelement == u'validators':
                 # Add a list of validators
@@ -518,12 +484,13 @@ class Test(object):
                             validator_type, validator_config)
                         mytest.validators.append(validator)
 
-            elif configelement == 'headers':  # HTTP headers to use, flattened to a single string-string dictionary
+            # HTTP headers to use, flattened to a single string-string dictionary
+            elif configelement == 'headers':
                 mytest.headers
                 configvalue = flatten_dictionaries(configvalue)
 
                 if isinstance(configvalue, dict):
-                    filterfunc  = lambda x: str(x[0]).lower() == 'template'  # Templated items
+                    filterfunc = lambda x: str(x[0]).lower() == 'template'  # Templated items
                     templates = [x for x in ifilter(filterfunc, configvalue.items())]
                 else:
                     templates = None
@@ -535,7 +502,8 @@ class Test(object):
                     mytest.headers = configvalue
                 else:
                     raise TypeError(
-                        "Illegal header type: headers must be a dictionary or list of dictionary keys")
+                        "Illegal header type: "
+                        "headers must be a dictionary or list of dictionary keys")
             elif configelement == 'variable_binds':
                 mytest.variable_binds = flatten_dictionaries(configvalue)
             elif configelement == 'generator_binds':
@@ -546,7 +514,7 @@ class Test(object):
                 mytest.generator_binds = output2
             elif configelement.startswith('curl_option_'):
                 curlopt = configelement[12:].upper()
-                if hasattr(BASECURL, curlopt):
+                if hasattr(BASE_REQ, curlopt):
                     if not mytest.curl_options:
                         mytest.curl_options = dict()
                     mytest.curl_options[curlopt] = configvalue

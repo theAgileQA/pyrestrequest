@@ -1,3 +1,8 @@
+""" Collection of generators to be used in templating for test data
+
+Plans: extend these by allowing generators that take generators for input
+Example: generators that case-swap
+"""
 import random
 import string
 import os
@@ -5,23 +10,17 @@ import logging
 import sys
 import time
 
-from . import parsing
-from .parsing import flatten_dictionaries, lowercase_keys, safe_to_bool
+from .parsing import flatten_dictionaries, lowercase_keys
 
 # Python 3 compatibility
 if sys.version_info[0] > 2:
     from builtins import range as xrange
     from past.builtins import basestring
 
-""" Collection of generators to be used in templating for test data
-
-Plans: extend these by allowing generators that take generators for input
-Example: generators that case-swap
-"""
 
 INT32_MAX_VALUE = 2147483647  # Max of 32 bit unsigned int
 
-logger = logging.getLogger('pyresttest.generators')
+LOGGER = logging.getLogger('pyresttest.generators')
 
 # Character sets to use in text generation, python string plus extras
 CHARACTER_SETS = {
@@ -51,9 +50,10 @@ def factory_generate_ids(starting_id=1, increment=1):
     """ Return function generator for ids starting at starting_id
         Note: needs to be called with () to make generator """
     def generate_started_ids():
+        """ generates the ids incrementally """
         val = starting_id
         local_increment = increment
-        while(True):
+        while True:
             yield val
             val += local_increment
     return generate_started_ids
@@ -67,28 +67,32 @@ def generator_basic_ids():
 def generator_random_int32():
     """ Random integer generator for up to 32-bit signed ints """
     rand = random.Random()
-    while (True):
+    while True:
         yield random.randint(0, INT32_MAX_VALUE)
 
 
 def generator_epoch_time():
     """ Return epoch time generator for current system time """
     epoch = time.time()
-    while (True):
+    while True:
         yield int(time.time())
 
 
-def factory_generate_text(legal_characters=string.ascii_letters, min_length=8, max_length=8):
-    """ Returns a generator function for text with given legal_characters string and length
+def factory_generate_text(legal_characters=string.ascii_letters,
+                          min_length=8,
+                          max_length=8):
+    """ Returns a generator function for text
+        with given legal_characters string and length.
         Default is ascii letters, length 8
 
         For hex digits, combine with string.hexstring, etc
         """
     def generate_text():
+        """ generates the random values for string"""
         local_min_len = min_length
         local_max_len = max_length
         rand = random.Random()
-        while(True):
+        while True:
             length = random.randint(local_min_len, local_max_len)
             array = [random.choice(legal_characters)
                      for x in xrange(0, length)]
@@ -101,9 +105,10 @@ def factory_fixed_sequence(values):
     """ Return a generator that runs through a list of values in order, looping after end """
 
     def seq_generator():
+        """ generates list of values """
         my_list = list(values)
         i = 0
-        while(True):
+        while True:
             yield my_list[i]
             if i == len(my_list):
                 i = 0
@@ -124,9 +129,10 @@ def factory_choice_generator(values):
     """ Return a generator that picks values from a list randomly """
 
     def choice_generator():
+        """ returns the selected random item from list """
         my_list = list(values)
         rand = random.Random()
-        while(True):
+        while True:
             yield random.choice(my_list)
     return choice_generator
 
@@ -145,24 +151,29 @@ def factory_env_variable(env_variable):
     """ Return a generator function that reads from an environment variable """
 
     def return_variable():
+        """ returns environment variable """
         variable_name = env_variable
-        while(True):
+        while True:
             yield os.environ.get(variable_name)
 
     return return_variable
 
 
 def factory_env_string(env_string):
-    """ Return a generator function that uses OS expand path to expand environment variables in string """
+    """ Return a generator function that uses OS expand path
+        to expand environment variables in string """
 
     def return_variable():
+        """ returns environment variable as a string """
         my_input = env_string
-        while(True):
+        while True:
             yield os.path.expandvars(my_input)
 
     return return_variable
 
-""" Implements the parsing logic for YAML, and acts as single point for reading configuration """
+
+""" Implements the parsing logic for YAML,
+    and acts as single point for reading configuration """
 
 
 def parse_random_text_generator(configuration):
@@ -192,9 +203,14 @@ def parse_random_text_generator(configuration):
         max_length = length
 
     if characters:
-        return factory_generate_text(legal_characters=characters, min_length=min_length, max_length=max_length)()
+        return factory_generate_text(
+            legal_characters=characters,
+            min_length=min_length,
+            max_length=max_length)()
     else:
-        return factory_generate_text(min_length=min_length, max_length=max_length)()
+        return factory_generate_text(
+            min_length=min_length,
+            max_length=max_length)()
 
 
 # List of valid generator types
@@ -204,8 +220,8 @@ GENERATOR_TYPES = set(['env_variable',
                        'random_int',
                        'random_text',
                        'fixed_sequence',
-                       'epoch_time'
-                       ])
+                       'epoch_time'])
+
 
 GENERATOR_PARSING = {'fixed_sequence': parse_fixed_sequence}
 
@@ -223,6 +239,7 @@ def register_generator(typename, parse_function):
             'Generator type named {0} already exists'.format(typename))
     GENERATOR_TYPES.add(typename)
     GENERATOR_PARSING[typename] = parse_function
+
 
 # Try registering a new generator
 register_generator('choice', parse_choice_generator)

@@ -1,22 +1,30 @@
-#!/usr/bin/env python
+"""
+Executable class, ties everything together into the framework.
+Module responsibilities:
+- Read & import test test_files
+- Parse test configs
+- Provide executor methods for sets of tests and benchmarks
+- Collect and report on test/benchmark results
+- Perform analysis on benchmark results
+"""
 import sys
 import os
+import time
 import traceback
-import yaml
 import json
 import csv
 import logging
 import threading
 from optparse import OptionParser
 from email import message_from_string  # For headers handling
-from . import oci_signer
-import requests
-import time
 import urllib3
+import requests
+import yaml
+from . import oci_signer
 
 try:
     from cStringIO import StringIO as MyIO
-except:
+except ImportError:
     try:
         from StringIO import StringIO as MyIO
     except ImportError:
@@ -31,8 +39,7 @@ if sys.version_info[0] > 2:
 
 # Dirty hack to allow for running this as a script :-/
 if __name__ == '__main__':
-    sys.path.append(os.path.dirname(os.path.dirname(
-    os.path.realpath(__file__))))
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
     from pyresttest.six import text_type
     from pyresttest.binding import Context
     from pyresttest import generators
@@ -40,14 +47,12 @@ if __name__ == '__main__':
     from pyresttest import tests
     from pyresttest.generators import parse_generator
     from pyresttest.parsing import flatten_dictionaries, lowercase_keys, safe_to_bool, safe_to_json
-
     from pyresttest.validators import Failure
     from pyresttest.tests import Test, DEFAULT_TIMEOUT
     from pyresttest.benchmarks import Benchmark, AGGREGATES, METRICS, parse_benchmark
 else:  # Normal imports
     from . import six
     from .six import text_type
-
     # Pyresttest internals
     from . import binding
     from .binding import Context
@@ -62,16 +67,8 @@ else:  # Normal imports
     from . import benchmarks
     from .benchmarks import Benchmark, AGGREGATES, METRICS, parse_benchmark
 
-"""
-Executable class, ties everything together into the framework.
-Module responsibilities:
-- Read & import test test_files
-- Parse test configs
-- Provide executor methods for sets of tests and benchmarks
-- Collect and report on test/benchmark results
-- Perform analysis on benchmark results
-"""
-HEADER_ENCODING ='ISO-8859-1' # Per RFC 2616
+
+HEADER_ENCODING = 'ISO-8859-1' # Per RFC 2616
 LOGGING_LEVELS = {'debug': logging.DEBUG,
                   'info': logging.INFO,
                   'warning': logging.WARNING,
@@ -79,25 +76,27 @@ LOGGING_LEVELS = {'debug': logging.DEBUG,
                   'critical': logging.CRITICAL}
 
 logging.basicConfig(format='%(levelname)s:%(message)s')
-logger = logging.getLogger('pyresttest')
+LOGGER = logging.getLogger('pyresttest')
 
 DIR_LOCK = threading.RLock()  # Guards operations changing the working directory
+
+
 class cd:
     """Context manager for changing the current working directory"""
     # http://stackoverflow.com/questions/431684/how-do-i-cd-in-python/13197763#13197763
 
-    def __init__(self, newPath):
-        self.newPath = newPath
+    def __init__(self, new_path):
+        self.new_path = new_path
 
     def __enter__(self):
-        if self.newPath:  # Don't CD to nothingness
+        if self.new_path:  # Don't CD to nothingness
             DIR_LOCK.acquire()
-            self.savedPath = os.getcwd()
-            os.chdir(self.newPath)
+            self.saved_path = os.getcwd()
+            os.chdir(self.new_path)
 
     def __exit__(self, etype, value, traceback):
-        if self.newPath:  # Don't CD to nothingness            
-            os.chdir(self.savedPath)
+        if self.new_path:  # Don't CD to nothingness
+            os.chdir(self.saved_path)
             DIR_LOCK.release()
 
 
@@ -115,7 +114,6 @@ class TestConfig:
     # NEW
     oci_signature = True
     oci_key = None
-
     # Binding and creation of generators
     variable_binds = None
     generators = None  # Map of generator name to generator function
@@ -210,10 +208,10 @@ def parse_headers(header_string):
         return list()
 
     # Python 2.6 message header parsing fails for Unicode strings, 2.7 is fine. Go figure.
-    if sys.version_info < (2,7):
+    if sys.version_info < (2, 7):
         header_msg = message_from_string(headers.encode(HEADER_ENCODING))
         return [(text_type(k.lower(), HEADER_ENCODING), text_type(v, HEADER_ENCODING))
-            for k, v in header_msg.items()]
+                for k, v in header_msg.items()]
     else:
         header_msg = message_from_string(headers)
         # Note: HTTP headers are *case-insensitive* per RFC 2616
@@ -231,7 +229,8 @@ def parse_testsets(base_url, test_structure, test_files=set(), working_directory
 
     Note: test_files is used to track tests that import other tests, to avoid recursive loops
 
-    This returns a list of testsets, corresponding to imported testsets and in-line multi-document sets
+    This returns a list of testsets,
+    corresponding to imported testsets and in-line multi-document sets
     """
 
     tests_out = list()
@@ -246,14 +245,16 @@ def parse_testsets(base_url, test_structure, test_files=set(), working_directory
         test_config.variable_binds = vars
 
     # returns a testconfig and collection of tests
-    for node in test_structure:  # Iterate through lists of test and configuration elements
-        if isinstance(node, dict):  # Each config element is a miniature key-value dictionary
+    # Iterate through lists of test and configuration elements
+    for node in test_structure:
+        # Each config element is a miniature key-value dictionary
+        if isinstance(node, dict):
             node = lowercase_keys(node)
             for key in node:
                 if key == u'import':
                     importfile = node[key]  # import another file
                     if importfile not in test_files:
-                        logger.debug("Importing test sets: " + importfile)
+                        LOGGER.debug("Importing test sets: " + importfile)
                         test_files.add(importfile)
                         import_test_structure = read_test_file(importfile)
                         with cd(os.path.dirname(os.path.realpath(importfile))):
@@ -317,15 +318,14 @@ def parse_configuration(node, base_config=None):
 
 def read_file(path):
     """ Read an input into a file, doing necessary conversions around relative path handling """
-    with open(path, "r") as f:
-        string = f.read()
-        f.close()
+    with open(path, "r") as file:
+        string = file.read()
+        file.close()
     return string
 
 
 def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *args, **kwargs):
     """ Put together test pieces: configure & run actual test, return results """
-
     # Initialize a context if not supplied
     my_context = context
     if my_context is None:
@@ -340,9 +340,10 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
     session = requests.Session()
 
     # generate and attach signature to header
-
     req = templated_test.configure_request(
-        timeout=test_config.timeout, context=my_context, curl_handle=curl_handle)
+        timeout=test_config.timeout,
+        context=my_context,
+        curl_handle=curl_handle)
 
     if test_config.verbose:
         session.verbose = True
@@ -351,9 +352,6 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
 
     headers = MyIO()
     body = MyIO()
-
-    # req.headers.update(headers)
-    # req.data = body
 
     prepped = req.prepare()
     prepped = oci_signer.request_signer(prepped, TestConfig.oci_key)
@@ -371,7 +369,7 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
         if mytest.body is not None:
             print("\n%s" % templated_test.body)
 
-        if sys.version_info >= (3,0):
+        if sys.version_info >= (3, 0):
             input("Press ENTER when ready (%d): " % (mytest.delay))
         else:
             raw_input("Press ENTER when ready (%d): " % (mytest.delay))
@@ -382,13 +380,12 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
 
     try:
         response = session.send(prepped)
-        # curl.perform()  # Run the actual call
-    except Exception as e:
-        # Curl exception occurred (network error), do not pass go, do not
+    except Exception as error:
+        # exception occurred (network error), do not pass go, do not
         # collect $200
         trace = traceback.format_exc()
         result.failures.append(Failure(message="Request Exception: {0}".format(
-            e), details=trace, failure_type=validators.FAILURE_CURL_EXCEPTION))
+            error), details=trace, failure_type=validators.FAILURE_CURL_EXCEPTION))
         result.passed = False
         session.close()
         return result
@@ -403,7 +400,7 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
     response_code = response.status_code
     result.response_code = response_code
 
-    logger.debug("Initial Test Result, based on expected response code: " +
+    LOGGER.debug("Initial Test Result, based on expected response code: " +
                  str(response_code in mytest.expected_status))
 
     if response_code in mytest.expected_status:
@@ -411,24 +408,27 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
     else:
         # Invalid response code
         result.passed = False
-        failure_message = "Invalid HTTP response code: response code {0} not in expected codes [{1}]".format(
-            response_code, mytest.expected_status)
+        failure_message = \
+            "Invalid HTTP response code: response code " \
+            "{0} not in expected codes [{1}]".format(response_code,
+                                                     mytest.expected_status)
         result.failures.append(Failure(
-            message=failure_message, details=None, failure_type=validators.FAILURE_INVALID_RESPONSE))
+            message=failure_message,
+            details=None,
+            failure_type=validators.FAILURE_INVALID_RESPONSE))
 
     # Parse HTTP headers
     try:
         result.response_headers = parse_headers(result.response_headers)
-    except Exception as e:
+    except Exception as error:
         trace = traceback.format_exc()
-        result.failures.append(Failure(message="Header parsing exception: {0}".format(
-            e), details=trace, failure_type=validators.FAILURE_TEST_EXCEPTION))
+        result.failures.append(Failure(
+            message="Header parsing exception: {0}".format(error),
+            details=trace,
+            failure_type=validators.FAILURE_TEST_EXCEPTION))
         result.passed = False
         session.close()
         return result
-
-    # print str(test_config.print_bodies) + ',' + str(not result.passed) + ' ,
-    # ' + str(test_config.print_bodies or not result.passed)
 
     head = result.response_headers
 
@@ -436,7 +436,7 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
     if result.passed is True:
         body = result.body
         if mytest.validators is not None and isinstance(mytest.validators, list):
-            logger.debug("executing this many validators: " +
+            LOGGER.debug("executing this many validators: " +
                          str(len(mytest.validators)))
             failures = result.failures
             for validator in mytest.validators:
@@ -450,7 +450,7 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
                     failures.append(validate_result)
                 # TODO add printing of validation for interactive mode
         else:
-            logger.debug("no validators found")
+            LOGGER.debug("no validators found")
 
         # Only do context updates if test was successful
         mytest.update_context_after(result.body, head, my_context)
@@ -468,7 +468,7 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
         print(result.response_headers)
 
     # TODO add string escape on body output
-    logger.debug(result)
+    LOGGER.debug(result)
 
     return result
 
@@ -512,8 +512,8 @@ def run_benchmark(benchmark, test_config=TestConfig(), context=None, *args, **kw
     results = [list() for x in xrange(0, len(metricnames))]
 
     # Benchmark warm-up to allow for caching, JIT compiling, on client
-    logger.info('Warmup: ' + message + ' started')
-    for x in xrange(0, warmup_runs):
+    LOGGER.info('Warmup: ' + message + ' started')
+    for item in xrange(0, warmup_runs):
         session = requests.Session()
         benchmark.update_context_before(my_context)
         templated = benchmark.realize(my_context)
@@ -531,11 +531,11 @@ def run_benchmark(benchmark, test_config=TestConfig(), context=None, *args, **kw
         session.send(prepped)
         session.close()
 
-    logger.info('Warmup: ' + message + ' finished')
+    LOGGER.info('Warmup: ' + message + ' finished')
 
-    logger.info('Benchmark: ' + message + ' starting')
+    LOGGER.info('Benchmark: ' + message + ' starting')
 
-    for x in xrange(0, benchmark_runs):  # Run the actual benchmarks
+    for item in xrange(0, benchmark_runs):  # Run the actual benchmarks
         # Setup benchmark
         session = requests.Session()
         benchmark.update_context_before(my_context)
@@ -553,7 +553,7 @@ def run_benchmark(benchmark, test_config=TestConfig(), context=None, *args, **kw
 
         try:  # Run the curl call, if it errors, then add to failure counts for benchmark
             response = session.send(prepped)
-        except Exception as s:
+        except Exception:
             output.failures = output.failures + 1
             session.close()
             continue  # Skip metrics collection
@@ -565,7 +565,7 @@ def run_benchmark(benchmark, test_config=TestConfig(), context=None, *args, **kw
             results[i].append(value(response))
         session.close()
 
-    logger.info('Benchmark: ' + message + ' ending')
+    LOGGER.info('Benchmark: ' + message + ' ending')
 
     temp_results = dict()
     for i in xrange(0, len(metricnames)):
@@ -662,10 +662,10 @@ OUTPUT_METHODS = {u'csv': write_benchmark_csv, u'json': write_benchmark_json}
 
 def log_failure(failure, context=None, test_config=TestConfig()):
     """ Log a failure from a test """
-    logger.error("Test Failure, failure type: {0}, Reason: {1}".format(
+    LOGGER.error("Test Failure, failure type: {0}, Reason: {1}".format(
         failure.failure_type, failure.message))
     if failure.details:
-        logger.error("Validator/Error details:" + str(failure.details))
+        LOGGER.error("Validator/Error details:" + str(failure.details))
 
 
 def run_testsets(testsets):
@@ -709,8 +709,9 @@ def run_testsets(testsets):
 
             if not result.passed:  # Print failure, increase failure counts for that test group
                 # Use result test URL to allow for templating
-                logger.error('Test Failed: ' + test.name + " URL=" + result.test.url +
-                             " Group=" + test.group + " HTTP Status Code: " + str(result.response_code))
+                LOGGER.error('Test Failed: ' + test.name + " URL=" + result.test.url +
+                             " Group=" + test.group +
+                             " HTTP Status Code: " + str(result.response_code))
 
                 # Print test failure reasons
                 if result.failures:
@@ -725,7 +726,7 @@ def run_testsets(testsets):
                 group_failure_counts[test.group] = failures
 
             else:  # Test passed, print results
-                logger.info('Test Succeeded: ' + test.name +
+                LOGGER.info('Test Succeeded: ' + test.name +
                             " URL=" + test.url + " Group=" + test.group)
 
             # Add results for this test group to the resultset
@@ -739,23 +740,23 @@ def run_testsets(testsets):
 
         for benchmark in mybenchmarks:  # Run benchmarks, analyze, write
             if not benchmark.metrics:
-                logger.debug('Skipping benchmark, no metrics to collect')
+                LOGGER.debug('Skipping benchmark, no metrics to collect')
                 continue
 
-            logger.info("Benchmark Starting: " + benchmark.name +
+            LOGGER.info("Benchmark Starting: " + benchmark.name +
                         " Group: " + benchmark.group)
             benchmark_result = run_benchmark(
                 benchmark, myconfig, context=context)
             print(benchmark_result)
-            logger.info("Benchmark Done: " + benchmark.name +
+            LOGGER.info("Benchmark Done: " + benchmark.name +
                         " Group: " + benchmark.group)
 
             if benchmark.output_file:  # Write file
-                logger.debug(
+                LOGGER.debug(
                     'Writing benchmark to file in format: ' + benchmark.output_format)
                 write_method = OUTPUT_METHODS[benchmark.output_format]
                 my_file = open(benchmark.output_file, 'w')  # Overwrites file
-                logger.debug("Benchmark writing to file: " +
+                LOGGER.debug("Benchmark writing to file: " +
                              benchmark.output_file)
                 write_method(my_file, benchmark_result,
                              benchmark, test_config=myconfig)
@@ -772,10 +773,11 @@ def run_testsets(testsets):
         total_failures = total_failures + failures
 
         passfail = {True: u'SUCCEEDED: ', False: u'FAILED: '}
-        output_string = "Test Group {0} {1}: {2}/{3} Tests Passed!".format(group, passfail[failures == 0], str(test_count - failures), str(test_count)) 
-        
+        output_string = "Test Group {0} {1}: {2}/{3} Tests Passed!".format(
+            group, passfail[failures == 0], str(test_count - failures), str(test_count))
+
         if myconfig.skip_term_colors:
-            print(output_string)    
+            print(output_string)
         else:
             if failures > 0:
                 print('\033[91m' + output_string + '\033[0m')
@@ -821,23 +823,25 @@ def register_extensions(modules):
                 "Extension to register did not contain any registries: {0}".format(ext))
 
 
-# AUTOIMPORTS, these should run just before the main method, to ensure
+# AUTO IMPORTS, these should run just before the main method, to ensure
 # everything else is loaded
 try:
     import jsonschema
     register_extensions('pyresttest.ext.validator_jsonschema')
-except ImportError as ie:
+except ImportError as import_error:
     logging.debug(
         "Failed to load jsonschema validator,"
-        " make sure the jsonschema module is installed if you wish to use schema validators.")
+        " make sure the jsonschema module is installed "
+        "if you wish to use schema validators. {}".format(import_error))
 
 try:
     import jmespath
     register_extensions('pyresttest.ext.extractor_jmespath')
-except ImportError as ie:
+except ImportError as import_error:
     logging.debug(
         "Failed to load jmespath extractor,"
-        " make sure the jmespath module is installed if you wish to use jmespath extractor.")
+        " make sure the jmespath module is installed "
+        "if you wish to use jmespath extractor. {}". format(import_error))
 
 
 def main(args):
@@ -849,14 +853,17 @@ def main(args):
         test          - REQUIRED - Test file (yaml)
         print_bodies  - OPTIONAL - print response body
         print_headers  - OPTIONAL - print response headers
-        log           - OPTIONAL - set logging level {debug,info,warning,error,critical} (default=warning)
-        interactive   - OPTIONAL - mode that prints info before and after test execution and pauses for user input for each test
-        absolute_urls - OPTIONAL - mode that treats URLs in tests as absolute/full URLs instead of relative URLs
+        log           - OPTIONAL - set logging level
+                                    {debug,info,warning,error,critical} (default=warning)
+        interactive   - OPTIONAL - mode that prints info before and after test execution
+                                    and pauses for user input for each test
+        absolute_urls - OPTIONAL - mode that treats URLs in tests as absolute/full URLs
+                                    instead of relative URLs
         skip_term_colors - OPTIONAL - mode that turn off the output term colors
     """
 
     if 'log' in args and args['log'] is not None:
-        logger.setLevel(LOGGING_LEVELS.get(
+        LOGGER.setLevel(LOGGING_LEVELS.get(
             args['log'].lower(), logging.NOTSET))
 
     if 'import_extensions' in args and args['import_extensions']:
@@ -887,60 +894,75 @@ def main(args):
                            working_directory=os.path.dirname(test_file), vars=my_vars)
 
     # Override configs from command line if config set
-    for t in tests:
-        if 'print_bodies' in args and args['print_bodies'] is not None and bool(args['print_bodies']):
-            t.config.print_bodies = safe_to_bool(args['print_bodies'])
+    for test in tests:
+        if 'print_bodies' in args \
+                and args['print_bodies'] is not None and bool(args['print_bodies']):
+            test.config.print_bodies = safe_to_bool(args['print_bodies'])
 
-        if 'print_headers' in args and args['print_headers'] is not None and bool(args['print_headers']):
-            t.config.print_headers = safe_to_bool(args['print_headers'])
+        if 'print_headers' in args \
+                and args['print_headers'] is not None and bool(args['print_headers']):
+            test.config.print_headers = safe_to_bool(args['print_headers'])
 
         if 'interactive' in args and args['interactive'] is not None:
-            t.config.interactive = safe_to_bool(args['interactive'])
+            test.config.interactive = safe_to_bool(args['interactive'])
 
         if 'verbose' in args and args['verbose'] is not None:
-            t.config.verbose = safe_to_bool(args['verbose'])
+            test.config.verbose = safe_to_bool(args['verbose'])
 
         if 'ssl_insecure' in args and args['ssl_insecure'] is not None:
-            t.config.ssl_insecure = safe_to_bool(args['ssl_insecure'])
+            test.config.ssl_insecure = safe_to_bool(args['ssl_insecure'])
 
         if 'skip_term_colors' in args and args['skip_term_colors'] is not None:
-            t.config.skip_term_colors = safe_to_bool(args['skip_term_colors'])
+            test.config.skip_term_colors = safe_to_bool(args['skip_term_colors'])
 
     # Execute all testsets
     failures = run_testsets(tests)
-
     sys.exit(failures)
 
 
 def parse_command_line_args(args_in):
-    """ Runs everything needed to execute from the command line, so main method is callable without arg parsing """
+    """ Runs everything needed to execute from the command line,
+        so main method is callable without arg parsing """
     parser = OptionParser(
         usage="usage: %prog base_url test_filename.yaml [options] ")
-    parser.add_option(u"--print-bodies", help="Print all response bodies",
+    parser.add_option(u"--print-bodies",
+                      help="Print all response bodies",
                       action="store", type="string", dest="print_bodies")
-    parser.add_option(u"--print-headers", help="Print all response headers",
+    parser.add_option(u"--print-headers",
+                      help="Print all response headers",
                       action="store", type="string", dest="print_headers")
-    parser.add_option(u"--log", help="Logging level",
+    parser.add_option(u"--log",
+                      help="Logging level",
                       action="store", type="string")
-    parser.add_option(u"--interactive", help="Interactive mode",
+    parser.add_option(u"--interactive",
+                      help="Interactive mode",
                       action="store", type="string")
-    parser.add_option(
-        u"--url", help="Base URL to run tests against", action="store", type="string")
-    parser.add_option(u"--test", help="Test file to use",
+    parser.add_option(u"--url",
+                      help="Base URL to run tests against",
+                      action="store", type="string")
+    parser.add_option(u"--test",
+                      help="Test file to use",
                       action="store", type="string")
     parser.add_option(u'--import_extensions',
-                      help='Extensions to import, separated by semicolons', action="store", type="string")
-    parser.add_option(
-        u'--vars', help='Variables to set, as a YAML dictionary', action="store", type="string")
-    parser.add_option(u'--verbose', help='Put cURL into verbose mode for extra debugging power',
+                      help='Extensions to import, separated by semicolons',
+                      action="store", type="string")
+    parser.add_option(u'--vars',
+                      help='Variables to set, as a YAML dictionary',
+                      action="store", type="string")
+    parser.add_option(u'--verbose',
+                      help='Put cURL into verbose mode for extra debugging power',
                       action='store_true', default=False, dest="verbose")
-    parser.add_option(u'--ssl-insecure', help='Disable cURL host and peer cert verification',
+    parser.add_option(u'--ssl-insecure',
+                      help='Disable cURL host and peer cert verification',
                       action='store_true', default=False, dest="ssl_insecure")
-    parser.add_option(u'--absolute-urls', help='Enable absolute URLs in tests instead of relative paths',
+    parser.add_option(u'--absolute-urls',
+                      help='Enable absolute URLs in tests instead of relative paths',
                       action="store_true", dest="absolute_urls")
-    parser.add_option(u'--skip_term_colors', help='Turn off the output term colors',
-                      action='store_true', default=False, dest="skip_term_colors"),
-    parser.add_option(u'--oci-signature', help='Disable the OCI client signature',
+    parser.add_option(u'--skip_term_colors',
+                      help='Turn off the output term colors',
+                      action='store_true', default=False, dest="skip_term_colors")
+    parser.add_option(u'--oci-signature',
+                      help='Disable the OCI client signature',
                       action='store_true', default=True, dest='oci_sig')
 
     (args, unparsed_args) = parser.parse_args(args_in)
@@ -967,6 +989,7 @@ def parse_command_line_args(args_in):
 
 
 def command_line_run(args_in):
+    """ collects command line string """
     args = parse_command_line_args(args_in)
     main(args)
 

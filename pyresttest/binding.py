@@ -1,15 +1,15 @@
-import logging
-import types
-
 """
 Basic context implementation for binding variables to values
 """
+import logging
+import types
 
-logger = logging.getLogger('pyresttest.binding')
+LOGGER = logging.getLogger('pyresttest.binding')
 
 
 class Context(object):
-    """ Manages binding of variables & generators, with both variable name and generator name being strings """
+    """ Manages binding of variables & generators,
+    with both variable name and generator name being strings """
 
     variables = dict()  # Maps variable name to current value
     generators = dict()  # Maps generator name to generator function
@@ -23,9 +23,9 @@ class Context(object):
         if prev != variable_value:
             self.variables[str(variable_name)] = variable_value
             self.mod_count = self.mod_count + 1
-            #logging.debug('Context: altered variable named {0} to value {1}'.format(str_name, variable_value))
 
     def bind_variables(self, variable_map):
+        """ bind values in map """
         for key, value in variable_map.items():
             self.bind_variable(key, value)
 
@@ -38,7 +38,6 @@ class Context(object):
                 'Cannot add generator named {0}, it is not a generator type'.format(generator_name))
 
         self.generators[str(generator_name)] = generator
-        #logging.debug('Context: Added generator named {0}'.format(generator_name))
 
     def bind_generator_next(self, variable_name, generator_name):
         """ Binds the next value for generator_name to variable_name and return value used """
@@ -51,10 +50,10 @@ class Context(object):
             self.variables[str_name] = val
             self.mod_count = self.mod_count + 1
             # Logging is /expensive/
-            #logging.debug('Context: Set variable named {0} to next value {1} from generator named {2}'.format(variable_name, val, generator_name))
         return val
 
     def get_values(self):
+        """ returns variables list """
         return self.variables
 
     def get_value(self, variable_name):
@@ -62,9 +61,11 @@ class Context(object):
         return self.variables.get(str(variable_name))
 
     def get_generators(self):
+        """ returns generators list """
         return self.generators
 
     def get_generator(self, generator_name):
+        """ returns generator name from list """
         return self.generators.get(str(generator_name))
 
     def __init__(self):

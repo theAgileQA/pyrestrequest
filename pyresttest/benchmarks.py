@@ -1,9 +1,19 @@
+"""
+Encapsulates logic related to benchmarking
+- Parameters and fields for benchmarks
+- Benchmark object that extends tests.Test object with additional fields
+- Templating/Caching logic specific to benchmarks
+"""
 import math
 import json
 
+# Python 3 compatibility shims
+from . import six
+from .six import binary_type
+from .six import text_type
+
 from . import tests
 from .tests import Test
-from . import parsing
 from .parsing import *
 from .metric import Metrics
 
@@ -11,26 +21,12 @@ from .metric import Metrics
 if sys.version_info[0] > 2:
     from past.builtins import basestring
 
-# Python 3 compatibility shims
-from . import six
-from .six import binary_type
-from .six import text_type
-
-"""
-Encapsulates logic related to benchmarking
-- Parameters and fields for benchmarks
-- Benchmark object that extends tests.Test object with additional fields
-- Templating/Caching logic specific to benchmarks
-"""
-
 
 # Request metrics for benchmarking, key is name in config file, value is request variable
-
 METRICS = {
     # Timing info, precisely in order from start to finish
     # The time it took from the start until the name resolving was completed.
     'namelookup_time': Metrics.namelookup_time(),
-    # 'namelookup_time': requests.Session.get,
 
     # The time it took from the start until the connect to the remote host (or
     # proxy) was completed.
@@ -49,9 +45,10 @@ METRICS = {
     # libcurl.
     'starttransfer_time': Metrics.starttransfer_time(),
 
-    # The time it took for all redirection steps include name lookup, connect, pretransfer and transfer
-    # before final transaction was started. So, this is zero if no redirection
-    # took place.
+    # The time it took for all redirection steps
+    # include name lookup, connect, pretransfer and transfer
+    # before final transaction was started.
+    # So, this is zero if no redirection took place.
     'redirect_time': Metrics.redirect_time(),
 
     # Total time of the previous request.
@@ -81,7 +78,7 @@ AGGREGATES = {
     lambda x: float(sum(x)) / float(len(x)),
     'mean':  # Alias for arithmetic mean
     lambda x: float(sum(x)) / float(len(x)),
-    'mean_harmonic':  # Harmonic mean, better predicts average of rates: http://en.wikipedia.org/wiki/Harmonic_mean
+    'mean_harmonic':  # better predicts average of rates, Google it
     lambda x: 1.0 / (sum([1.0 / float(y) for y in x]) / float(len(x))),
     'median': lambda x: median(x),
     'std_deviation': lambda x: std_deviation(x),
@@ -149,7 +146,9 @@ class Benchmark(Test):
         return output
 
     def add_metric(self, metric_name, aggregate=None):
-        """ Add a metric-aggregate pair to the benchmark, where metric is a number to measure from curl, and aggregate is an aggregation function
+        """ Add a metric-aggregate pair to the benchmark,
+            where metric is a number to measure from curl,
+            and aggregate is an aggregation function.
             (See METRICS and AGGREGATES)
             If aggregate is not defined (False,empty, or None), then the raw number is reported
             Returns self, for fluent-syle construction of config """
@@ -191,16 +190,15 @@ def realize_partial(self, context=None):
     if not self.is_dynamic():
         return self
     if self.is_context_modifier():
-        # Enhanceme - once extract is done, check if variables already bound,
+        # Enhancement - once extract is done, check if variables already bound,
         # in that case template out
         return self
     else:
-        copyout = copy.cop
-
-    pass
+        pass
 
 
 def configure_request(self, timeout=tests.DEFAULT_TIMEOUT, context=None, curl_handle=None):
+    """ Almost unused, just need to refactor this method out"""
     req = super().configure_request(self, timeout=timeout,
                                     context=context, curl_handle=curl_handle)
     return req
@@ -263,7 +261,7 @@ def parse_benchmark(base_url, node):
                         raise TypeError(
                             "Invalid aggregate input: non-string aggregate name")
                     benchmark.add_metric(tests.coerce_to_string(metricname),
-                        tests.coerce_to_string(aggregate))
+                                         tests.coerce_to_string(aggregate))
             else:
                 raise TypeError(
                     "Invalid benchmark metric datatype: " + str(value))

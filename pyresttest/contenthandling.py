@@ -1,7 +1,8 @@
+"""
+Encapsulates contend handling logic, for pulling file content into tests
+"""
 import os
-import sys
 
-from . import parsing
 from .parsing import *
 
 # Python 2/3 switches
@@ -10,23 +11,21 @@ if PYTHON_MAJOR_VERSION > 2:
     from past.builtins import basestring
 
 
-"""
-Encapsulates contend handling logic, for pulling file content into tests
-"""
-
-
 class ContentHandler:
-    """ Handles content that may be (lazily) read from filesystem and/or templated to various degrees
-    Also creates pixie dust and unicorn farts on demand
-    This is pulled out because logic gets complex rather fast
+    """ Handles content that may be (lazily)
+        read from filesystem and/or templated to various degrees
+        Also creates pixie dust and unicorn farts on demand
+        This is pulled out because logic gets complex rather fast
 
-    Covers 6 states:
-        - Inline body content, no templating
-        - Inline body content, with templating
-        - File path to content, NO templating
-        - File path to content, content gets templated
-        - Templated path to file content (path itself is templated), file content UNtemplated
-        - Templated path to file content (path itself is templated), file content TEMPLATED
+        Covers 6 states:
+            - Inline body content, no templating
+            - Inline body content, with templating
+            - File path to content, NO templating
+            - File path to content, content gets templated
+            - Templated path to file content (path itself is templated),
+                file content UNtemplated
+            - Templated path to file content (path itself is templated),
+                file content TEMPLATED
     """
 
     content = None  # Inline content
@@ -47,8 +46,8 @@ class ContentHandler:
                 path = string.Template(path).safe_substitute(
                     context.get_values())
             data = None
-            with open(path, 'r') as f:
-                data = f.read()
+            with open(path, 'r') as file:
+                data = file.read()
 
             if self.is_template_content and context:
                 return string.Template(data).safe_substitute(context.get_values())
@@ -66,8 +65,8 @@ class ContentHandler:
             return self
         output = ContentHandler()
         output.is_template_content = self.is_template_content
-        with open(self.content, 'r') as f:
-            output.content = f.read()
+        with open(self.content, 'r') as file:
+            output.content = file.read()
         return output
 
     def setup(self, input, is_file=False, is_template_path=False, is_template_content=False):

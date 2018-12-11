@@ -1,9 +1,4 @@
-#!/usr/bin/env python
-
-# signature library
-import cryptography.hazmat.backends
-import cryptography.hazmat.primitives.serialization
-
+""" Signature module that creates the signature header based on provided keys. """
 import base64
 import email.utils
 import hashlib
@@ -12,14 +7,18 @@ import httpsig_cffi.sign
 import requests
 import six
 
+import cryptography.hazmat.backends
+import cryptography.hazmat.primitives.serialization
+
 # get env variable set to target url
-backend = cryptography.hazmat.backends.default_backend()
+BACKEND = cryptography.hazmat.backends.default_backend()
 with open('/keys/oci_api_key.pem', mode='rb') as infile:
-    apikey_pem = infile.read().strip()
+    APIKEY_PEM = infile.read().strip()
 
 
 def request_signer(request, client_key_id):
-    signature = SignedRequestAuth(client_key_id, apikey_pem)
+    """ signing method called by application. """
+    signature = SignedRequestAuth(client_key_id, APIKEY_PEM)
     signed_request = signature.__call__(request)
     return signed_request
 
@@ -44,7 +43,9 @@ class SignedRequestAuth(requests.auth.AuthBase):
 
     def __init__(self, *args):
         """
-        Takes either 2 or 4 args. (key_id, private_key) or (tenancy_ocid, user_ocid, key_fingerprint, private_key)
+        Takes either 2 or 4 args.
+        (key_id, private_key) or
+        (tenancy_ocid, user_ocid, key_fingerprint, private_key)
         """
         if len(args) not in [2, 4]:
             raise SyntaxError("SignedRequestAuth.__init__ takes 2 or 4 args.")
@@ -65,8 +66,9 @@ class SignedRequestAuth(requests.auth.AuthBase):
             use_host = "host" in headers
             self.signers[method] = (signer, use_host)
 
-    def inject_missing_headers(self, request, sign_body):
-        # Inject date, content-type, and host if missing
+    @staticmethod
+    def inject_missing_headers(request, sign_body):
+        """ Inject date, content-type, and host if missing. """
         request.headers.setdefault("date", email.utils.formatdate(usegmt=True))
         request.headers.setdefault("content-type", "application/json")
         request.headers.setdefault("host", six.moves.urllib.parse.urlparse(request.url).netloc)
@@ -78,8 +80,8 @@ class SignedRequestAuth(requests.auth.AuthBase):
             if "x-content-sha256" not in request.headers:
                 if isinstance(body, bytes):
                     body = body.decode("utf-8")
-                m = hashlib.sha256(body.encode("utf-8"))
-                base64digest = base64.b64encode(m.digest())
+                hash_encode = hashlib.sha256(body.encode("utf-8"))
+                base64digest = base64.b64encode(hash_encode.digest())
                 base64string = base64digest.decode("utf-8")
                 request.headers["x-content-sha256"] = base64string
             request.headers.setdefault("content-length", len(body))
@@ -102,6 +104,9 @@ class SignedRequestAuth(requests.auth.AuthBase):
         else:
             host = None
 
-        signed_headers = signer.sign(request.headers, host=host, method=request.method, path=request.path_url)
+        signed_headers = signer.sign(request.headers,
+                                     host=host,
+                                     method=request.method,
+                                     path=request.path_url)
         request.headers.update(signed_headers)
         return request

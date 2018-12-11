@@ -1,7 +1,9 @@
+"""
+Parsing utilities, pulled out so they can be used in multiple modules
+"""
 from __future__ import absolute_import
 import sys
 import string
-
 
 # Python 3 compatibility shims
 from . import six
@@ -13,13 +15,10 @@ PYTHON_MAJOR_VERSION = sys.version_info[0]
 if PYTHON_MAJOR_VERSION > 2:
     from past.builtins import basestring
 
-"""
-Parsing utilities, pulled out so they can be used in multiple modules
-"""
 
 def encode_unicode_bytes(my_string):
     """ Shim function, converts Unicode to UTF-8 encoded bytes regardless of the source format
-        Intended for python 3 compatibility mode, and b/c PyCurl only takes raw bytes
+        Intended for python 3 compatibility mode.
     """
     if not isinstance(my_string, basestring):
         my_string = repr(my_string)
@@ -36,11 +35,15 @@ def encode_unicode_bytes(my_string):
         elif isinstance(my_string, bytes):
             return my_string
 
+
 # TODO create a full class that extends string.Template
 def safe_substitute_unicode_template(templated_string, variable_map):
-    """ Perform string.Template safe_substitute on unicode input with unicode variable values by using escapes
+    """ Perform string.
+        Template safe_substitute on unicode input
+        with unicode variable values by using escapes.
         Catch: cannot accept unicode variable names, just values
-        Returns a Unicode type output, if you want UTF-8 bytes, do encode_unicode_bytes on it
+        Returns a Unicode type output, if you want UTF-8 bytes,
+        do encode_unicode_bytes on it
     """
 
     if PYTHON_MAJOR_VERSION > 2:  # Python 3 handles unicode templating natively, yay!
@@ -50,6 +53,7 @@ def safe_substitute_unicode_template(templated_string, variable_map):
     my_escaped_dict = dict(map(lambda x: (x[0], encode_unicode_bytes(x[1])), variable_map.items()))
     templated = my_template.safe_substitute(my_escaped_dict)
     return text_type(templated, 'utf-8')
+
 
 def safe_to_json(in_obj):
     """ Safely get dict from object if present for json dumping """
@@ -87,9 +91,12 @@ def lowercase_keys(input_dict):
 
 
 def safe_to_bool(input):
-    """ Safely convert user input to a boolean, throwing exception if not boolean or boolean-appropriate string
-      For flexibility, we allow case insensitive string matching to false/true values
-      If it's not a boolean or string that matches 'false' or 'true' when ignoring case, throws an exception """
+    """ Safely convert user input to a boolean,
+        throwing exception if not boolean or boolean-appropriate string
+        For flexibility, we allow case insensitive string matching to false/true values
+        If it's not a boolean or string that matches 'false' or 'true'
+        when ignoring case, throws an exception
+    """
     if isinstance(input, bool):
         return input
     elif isinstance(input, basestring) and input.lower() == u'false':
@@ -107,7 +114,11 @@ class SuperConfigurator(object):
 
     """
 
-    def run_configure(self, key, value, configurable, validator_func=None, converter_func=None, store_func=None, *args, **kwargs):
+    def run_configure(self, key,
+                      value, configurable,
+                      validator_func=None,
+                      converter_func=None,
+                      store_func=None):
         """ Run a single configuration element
             Run a validator on the value, if supplied
             Run a converter_funct to turn the value into something to storeable:
@@ -116,7 +127,7 @@ class SuperConfigurator(object):
               store_func needs to take params (object, key, value, args, kwargs)
             If store_func NOT supplied we do a setattr on object
         """
-        if validator_func and not validator(value):
+        if validator_func and not value:
             raise TypeError("Illegal argument for {0}".format(value))
         storeable = value
         if converter_func:
@@ -126,7 +137,7 @@ class SuperConfigurator(object):
         else:
             configurable.setattr(configurable, key, value)
 
-    def configure(self, configs, configurable, handler, *args, **kwargs):
+    def configure(self, configs, configurable, handler):
         """ Use the configs and configurable to parse"""
         for key, value in configs.items():
             # Read handler arguments and use them to call the configurator

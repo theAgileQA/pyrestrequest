@@ -10,22 +10,21 @@ test_dependencies = ['django==1.6.5', 'django-tastypie==0.12.1', 'jsonpath', 'jm
 
 # Add additional compatibility shims
 if sys.version_info[0] > 2:
-  dependencies.append('future')  # Only works with direct local installs, not via pip
+    dependencies.append('future')  # Only works with direct local installs, not via pip
 else:
-  test_dependencies.append('mock')
-  test_dependencies.append('discover')
+    test_dependencies.append('mock')
+    test_dependencies.append('discover')
 
 setup(name='pyresttest',
-      version='1.7.2.dev.oci.1',
+      version='dev.2.0',
       description='Python RESTful API Testing & Microbenchmarking Tool',
       long_description='Python RESTful API Testing & Microbenchmarking Tool',
-      author='Sam Van Oort, revised by Tamara Macul Mendes at OCI',
+      author='refactored by Tamara Macul Mendes at OCI, based off Sam Van Oort pyresttest',
       author_email='mara.macul.mendes@oracle.com',
-      url='https://github.com/svanoort/pyresttest',
+      url='https://github.corp.dyndns.com/InternetIntelligence/pyrestrequest',
       keywords=['rest', 'web', 'http', 'testing'],
       classifiers=[
           'Environment :: Console',
-          'License :: OSI Approved :: Apache Software License',
           'Natural Language :: English',
           'Programming Language :: Python :: 2.6',
           'Programming Language :: Python :: 2.7',
@@ -43,10 +42,9 @@ setup(name='pyresttest',
                   'pyresttest.ext.validator_jsonschema',
                   'pyresttest.ext.extractor_jmespath',
                   'pyresttest.oci_signer', 'pyresttest.metric'],
-      license='Apache License, Version 2.0',
       install_requires=dependencies,
       tests_require=test_dependencies,
-      extras_require= {
+      extras_require={
         'JSONSchema': ['jsonschema'],
         'JMESPath': ['jmespath']
       },
