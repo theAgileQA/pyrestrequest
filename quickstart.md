@@ -10,8 +10,7 @@ Now, let's get started!
 **This is what testing is for.**
 
 ## System Requirements:
-- Linux or Mac OS X with python 2.6+ or 2.7 installed and pycurl
-- Do not use a virtualenv (or have it custom configured to find libcurl)
+- Linux or Mac OS X with python 2.6+ or 2.7 installed and pyyaml
 
 # Quickstart Part 0: Setting Up a Sample REST Service
 In order to get started with PyRestTest, we will need a REST service with an API to work with.
@@ -20,7 +19,7 @@ Fortunately, there is a small RESTful service included with the project.
 
 Let's **grab a copy of the code** to start:
 ```shell
-git clone https://github.com/svanoort/pyresttest.git
+git clone https://github.corp.dyndns.com/InternetIntelligence/pyrestrequest.git
 ```
 
 Then we'll **install the necessary dependencies** to run it (Django and Django Tastypie):

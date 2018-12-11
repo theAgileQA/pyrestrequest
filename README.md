@@ -18,7 +18,6 @@ pyresttest
 - [Basic Test Set Syntax](#basic-test-syntax)
 	- [Import example](#import-example)
 	- [Url Test](#url-test-with-timeout)
-	- [Custom HTTP Options (special curl settings)](#custom-http-options-special-curl-settings)
 	- [Syntax Limitations](#syntax-limitations)
 - [Benchmarking?](#benchmarking)
 	- [Metrics](#metrics)
@@ -31,82 +30,37 @@ pyresttest
 # What Is It?
 - A REST testing and API microbenchmarking tool
 - Tests are defined in basic YAML or JSON config files, no code needed
-- Minimal dependencies (pycurl, pyyaml, optionally future), making it easy to deploy on-server for smoketests/healthchecks
+- Minimal dependencies (requests, pyyaml, optionally future), making it easy to deploy on-server for smoketests/healthchecks
 - Supports [generate/extract/validate](advanced_guide.md) mechanisms to create full test scenarios
 - Returns exit codes on failure, to slot into automated configuration management/orchestration tools (also supplies parseable logs)
 - Logic is written and [extensible](extensions.md) in Python
 
 # Status
-
-**NEW: Full Python 3 Support in Alpha** - download it, 'pip install future' and give it a try!
  
-Apache License, Version 2.0
-
 ![Status Badge](http://52.4.228.82:8080/jenkins/buildStatus/icon?job=set-main-build-status) [![PyPI version](https://badge.fury.io/py/pyresttest.svg)](https://badge.fury.io/py/pyresttest) 
 [![PyPI](https://img.shields.io/pypi/dm/Pyresttest.svg)]()
 
-[![Join the chat at https://gitter.im/svanoort/pyresttest](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/svanoort/pyresttest?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[Changelog](CHANGELOG.md) shows the past and present.
 
-[Changelog](CHANGELOG.md) shows the past and present, [milestones](https://github.com/svanoort/pyresttest/milestones) show the future roadmap.
-
-* The changelog will also show features/fixes currently merged to the master branch but not released to PyPi yet (pending installation tests across platforms). 
+* The changelog is a remnant of the original repository. 
 
 # Installation
 PyRestTest works on Linux or Mac with Python 2.6, 2.7, or 3.3+ (with module 'future' installed)
 
-**First we need to install package python-pycurl:**
-* Ubuntu/Debian: (sudo) `apt-get install python-pycurl`
-* CentOS/RHEL: (sudo) `yum install python-pycurl`
+**First we need to install package python-pyyaml:**
+* Ubuntu/Debian: (sudo) `apt-get install python-pyyaml`
+* CentOS/RHEL: (sudo) `yum install python-pyyaml`
 * Alpine: (sudo) `apk add curl-dev`
 * Mac: *don't worry about it*
-* Other platforms: *unsupported.*  You *may* get it to work by installing pycurl & pyyaml manually. Also include 'future' for Python 3. No guarantees though.
-*This is needed because the pycurl dependency may fail to install by pip.  In *very rare* cases you may need to intall python-pyyaml if pip cannot install it correctly.*
-
-**It is easy to install the latest release by pip:**
-(sudo) `pip install pyresttest`  (also install 'future' if on Python 3)
-
-**If pip isn't installed, we'll want to install it first:**
-If that is not installed, we'll need to install it first:
-* Ubuntu/Debian: (sudo) `apt-get install python-pip`
-* CentOS/RHEL: (sudo) `yum install python-pip`
-* Mac OS X with homebrew: `brew install python`  (it's included)
-* Or with just python installed: `wget https://bootstrap.pypa.io/get-pip.py && sudo python get-pip.py`
-
-**Releases occur every few months, if you want to use unreleased features, it's easy to install from source:**
-
-*See the [Change Log](CHANGELOG.md) for feature status.*
+* Other platforms: *unsupported.*  You *may* get it to work by installing pyyaml manually. Also include 'future' for Python 3. No guarantees though.
 
 ```shell
-git clone https://github.com/svanoort/pyresttest.git
+git clone https://github.corp.dyndns.com/InternetIntelligence/pyrestrequest.git
 cd pyresttest
 sudo python setup.py install
 ```
 
 The master branch tracks the latest; it is unit tested, but less stable than the releases (the 'stable' branch tracks tested releases).
-
-
-## Troubleshooting Installation
-
-Almost all installation issues are due to problems with PyCurl and PyCurl's native libcurl bindings. It is easy to check if PyCurl is installed correctly:
-
-`python -c 'import pycurl'`
-
-If this returns correctly, pycurl is installed, if you see an ImportError or similar, it isn't.
-You may also verify the pyyaml installation as well, since that can fail to install by pip in rare circumstances.
-
-### Error installing by pip
-`__main__.ConfigurationError: Could not run curl-config: [Errno 2] No such file or directory`
-
-This is caused by libcurl not being installed or recognized: first install pycurl using native packages as above.  Alternately, try installing just the libcurl libraries:
-
-- On Ubuntu/Debian: `sudo apt-get install libcurl4-openssl-dev`
-- On CentOS/RHEL: `yum install libcurl-devel`
-
-## VirtualEnv installation
-PyCurl *should* install by pip, but sometimes has issues with pycurl/libcurl.
-Manually copying in a working system pycurl installation may help:
-
-`cp /usr/lib/python2.7/dist-packages/pycurl* env/local/lib/python2.7/site-packages/`
 
 # Sample Test
 **This will check that APIs accept operations, and will smoketest an application**
@@ -148,8 +102,8 @@ Manually copying in a working system pycurl installation may help:
   - This shows how to use extraction from responses, templating, and different test types
 * If you're trying to do something fancy, take a look at the [content-test.yaml](pyresttest/content-test.yaml).
   - This shows most kinds of templating & variable uses. It shows how to read from file, using a variable in the file path, and templating on its content!
-* PyRestTest isn't limited to JSON; there's an [example for submitting form data](https://github.com/svanoort/pyresttest/tree/master/examples/dummyapp-posting-forms.yaml)
-* There's a [whole folder](https://github.com/svanoort/pyresttest/tree/master/examples) of example tests to help get started
+* PyRestTest isn't limited to JSON; there's an [example for submitting form data](examples/dummyapp-posting-forms.yaml)
+* There's a [whole folder](examples) of example tests to help get started
 
 
 
@@ -158,7 +112,7 @@ Manually copying in a working system pycurl installation may help:
 - Benchmarking has its [own section](#benchmarking) below
 - Advanced features have [separate documentation](advanced_guide.md) (templating, generators, content extraction, complex validation).
 - How to [extend PyRestTest](extensions.md) is its own document
-- There are a [ton of examples](https://github.com/svanoort/pyresttest/tree/master/examples)
+- There are a [ton of examples](examples)
 - @BastienAr has created an [Atom editor package](https://atom.io/packages/language-pyresttest) for PyRestTest development (thank you!)
 
 ## Running A Simple Test
@@ -240,21 +194,6 @@ Also shows how to use the timeout option in testset config to descrease the defa
     - url: "/api/person/"  # This does the same thing
 ```
 
-## Custom HTTP Options (special curl settings)
-For advanced cases (example: SSL client certs), sometimes you will want to use custom Curl settings that don't have a corresponding option in PyRestTest.  
-
-This is easy to do: for each test, you can specify custom Curl arguments with 'curl_option_optionname.'  For this, 'optionname' is case-insensitive and the optionname is a [Curl Easy Option](http://curl.haxx.se/libcurl/c/curl_easy_setopt.html) with 'CURLOPT_' removed. 
-
-For example, to follow redirects up to 5 times (CURLOPT_FOLLOWLOCATION and CURLOPT_MAXREDIRS):
-```yaml
----
-- test: 
-    - url: "/api/person/1"
-    - curl_option_followlocation: True
-    - curl_option_maxredirs: 5  
-```
-Note that while option names are validated, *no validation* is done on their values.
-
 ## Syntax Limitations
 * Whenever possible, the YAML configuration handler tries to convert variable types as needed.  We're all responsible adults, don't do anything crazy and it will play nicely.
 * Only a handful of elements can use dynamic variables (URLs, headers, request bodies, validators) - there are plans to change this in the next few releases.
@@ -304,8 +243,7 @@ Aggregates are pretty straightforward:
 - *std_deviation*: standard deviation of values, useful for measuring how consistent they are
 - *total* or *sum*: total up the values given
 
-Currently supported metrics are listed below, and these are a subset of Curl get_info variables.
-These variables are explained here (with the CURLINFO_ prefix removed): [curl_easy_get_info documentation](http://curl.haxx.se/libcurl/c/curl_easy_getinfo.html)
+Currently supported metrics are listed below, and these are methods created and contained in a metrics module.
 
 *Metrics:*
 'appconnect_time', 'connect_time', 'namelookup_time', 'num_connects', 'pretransfer_time', 'redirect_count', 'redirect_time', 'request_size', 'size_download', 'size_upload', 'speed_download', 'speed_upload', 'starttransfer_time', 'total_time'
@@ -355,34 +293,6 @@ Samples:
     - metrics: {speed_upload: median, speed_download: median, redirect_time: mean}
     - output_format: json
     - output_file: 'miniapp-single.json'
-```
-
-# RPM-based installation
-
-## Pure RPM-based install?
-It's easy to build and install from RPM:
-
-## Building the RPM:
-```shell
-python setup.py bdist_rpm  # Build RPM
-find -iname '*.rpm'   # Gets the RPM name
-```
-### Installing from RPM
-```shell
-sudo yum localinstall my_rpm_name
-sudo yum install PyYAML python-pycurl  # If using python3, needs 'future' too
-```
-- You need to install PyYAML & PyCurl manually because Python distutils can't translate python dependencies to RPM packages. 
-
-**Gotcha:** Python distutils add a dependency on your major python version. 
-**This means you can't build an RPM for a system with Python 2.6 on a Python 2.7 system.**
-
-## Building an RPM for RHEL 6/CentOS 6
-You'll need to install rpm-build, and then it should work.
-
-```shell
-sudo yum install rpm-build
-```
 
 # Project Policies
 * PyRestTest uses the Github flow
@@ -402,8 +312,6 @@ sudo yum install rpm-build
 
 # Feedback and Contributions
 We welcome any feedback you have, including pull requests, reported issues, etc!
-
-**For new contributors** there are a whole set of issues labelled with [help wanted](https://github.com/svanoort/pyresttest/labels/help%20wanted) which are excellent starting points to offer a contribution! 
 
 For instructions on how to set up a dev environment for PyRestTest, see [building.md](building.md).
 
@@ -432,6 +340,3 @@ Bear in mind that this is largely a one-man, outside-of-working-hours effort at 
 - No, this is a separate niche and there are already many excellent tools to fill it
 - Adding load testing features would greatly increase complexity
 - But some form might come eventually!
-
-## Why do you use PyCurl and not requests?
-- Maybe eventually.  PyRestTest needs the low-level features of PyCurl for benchmarking, and benefits from its performance.  However we may eventually abstract some of the core testing features away to allow for pure-python execution

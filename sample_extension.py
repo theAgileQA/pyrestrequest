@@ -1,19 +1,21 @@
-# Sample python extension
+""" Sample python extension """
 import pyresttest.validators as validators
 from pyresttest.binding import Context
 import sys
 
 # Python 3 compatibility
-if sys.version_info[0] > 2:
-    from past.builtins import basestring
 from pyresttest.six import text_type
 from pyresttest.six import binary_type
+if sys.version_info[0] > 2:
+    from past.builtins import basestring
+
 
 class ContainsValidator(validators.AbstractValidator):
-    # Sample validator that verifies a string is contained in the request body
+    """ Sample validator that verifies a string is contained in the request body"""
     contains_string = None
 
     def validate(self, body=None, headers=None, context=None):
+        """ validates string is present """
         if isinstance(body, binary_type) and isinstance(self.contains_string, text_type):
             result = self.contains_string.encode('utf-8') in body
         else:
@@ -61,7 +63,7 @@ def parse_generator_doubling(config):
     # limitations
     def generator():
         val = start
-        while(True):
+        while True:
             yield val
             val = val * 2
     return generator()
@@ -70,6 +72,7 @@ def parse_generator_doubling(config):
 def test_is_dict(input):
     """ Simple test that returns true if item is a dictionary """
     return isinstance(input, dict)
+
 
 # This is where the magic happens, each one of these is a registry of
 # validators/extractors/generators to use

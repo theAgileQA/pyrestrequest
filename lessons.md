@@ -35,3 +35,8 @@ A walkthrough of good and bad decisions in building PyRestTest and their consequ
   - Pro: portable, simple, fairly fast, easy to test / Con: limited features
 * Not directly integrating with unittest or other test framework (going its own way)
   - Pro: more powerful, more flexible, superset of features / Con: more code, less consistent logging
+
+## Refactored
+* Removed all usage of pycurl, curl does not support custom signature headers.
+    - Replaced with python requests as it does support this customization.
+    - No longer need to install and configure openssl, libcurl, pycurl, or install a mostly unused dev tool suite for one library.

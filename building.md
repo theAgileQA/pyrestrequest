@@ -12,13 +12,11 @@ There are two options for how to work with code
 ## Environments
 1. Local (native) python (Linux or Mac)
   - You'll need to pip install the following packages:
-    + pycurl
     + pyyaml
     + mock
     + django==1.6.5 (for functional testing server)
     + django-tastypie==0.12.1 (for functional testing server)
     + discover (if on a python 2.6 system)
-  - Avoid a virtualenv unless you *very carefully* set it up for pycurl use (it may not find libcurl)
 
 2. Docker: see the docker folder, we have preconfigured images for a *stable, clean verified* dev/test environment 
   1. (sudo) 'build.sh' will build docker images and verify the environment
@@ -30,7 +28,7 @@ There are two options for how to work with code
     - (sudo) docker run -v `pwd`:/tmp/pyresttest -it --rm pyresttest-build-ubuntu-14 /bin/bash
   3. OR just run the images and clone the repo from within them:
     1. (sudo) docker run -it --rm pyresttest-build-ubuntu-14 /bin/bash
-    2. Inside container: cd /tmp && git clone https://github.com/svanoort/pyresttest.git
+    2. Inside container: cd /tmp && git clone https://github.corp.dyndns.com/InternetIntelligence/pyrestrequest.git
     3. Do your coding and commit/push, etc
 
 ## Releasing

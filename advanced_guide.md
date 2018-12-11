@@ -416,9 +416,9 @@ Validate against a schema in file 'miniapp-schema.json'
     1. Bind variables defined in the test into the context
     2. Bind generator values defined for that test into the context
 2. Templating: realize() final version for that test, reading lazy-loaded files
-3. Configure a Curl call, using info from the test and its configure_curl call
+3. Configure a request call, using info from the test and its configure_request call
 4. IF interactive mode: print info and wait for response
-5. Execute the curl call
+5. Execute the request call
 6. Update context after the test (extraction)
 7. Run validators
 8. Construct and return a TestResponse()
@@ -428,12 +428,12 @@ Validate against a schema in file 'miniapp-schema.json'
 2. Warmup, runs *warmup_runs* times
     1. Update context before test (variable and generator binding) 
     2. Realize test templating
-    3. Reconfigure a Curl call (curl objects are reused if possible)
+    3. Reconfigure a Curl call (request objects are reused if possible)
     4. Run Curl
 3. Benchmarking, runs *benchmark_runs* times
     1. Update context before test (variable and generator binding) 
     2. Realize test templating
-    3. Reconfigure a Curl call (curl objects are reused if possible)
+    3. Reconfigure a Curl call (request objects are reused if possible)
     4. Run Curl
     5. Collect metrics (adding to arrays)
 4. Postprocessing: analyze benchmark results, condense arrays, and generate a BenchmarkResult object
