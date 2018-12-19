@@ -110,7 +110,7 @@ class TestConfig:
     interactive = False
     verbose = False
     ssl_insecure = False
-    skip_term_colors = False  # Turn off output term colors
+    skip_term_colors = True  # Turn off output term colors
     # NEW
     oci_signature = True
     oci_key = None
@@ -359,15 +359,15 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
     result.passed = None
 
     if test_config.interactive:
-        print("===================================")
-        print("%s" % mytest.name)
-        print("-----------------------------------")
-        print("REQUEST:")
-        print("%s %s" % (templated_test.method, templated_test.url))
-        print("HEADERS:")
-        print("%s" % prepped.headers)
+        LOGGER.debug("===================================")
+        LOGGER.debug("%s" % mytest.name)
+        LOGGER.debug("-----------------------------------")
+        LOGGER.debug("REQUEST:")
+        LOGGER.debug("%s %s" % (templated_test.method, templated_test.url))
+        LOGGER.debug("HEADERS:")
+        LOGGER.debug("%s" % prepped.headers)
         if mytest.body is not None:
-            print("\n%s" % templated_test.body)
+            LOGGER.debug("\n%s" % templated_test.body)
 
         if sys.version_info >= (3, 0):
             input("Press ENTER when ready (%d): " % (mytest.delay))
@@ -375,7 +375,7 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
             raw_input("Press ENTER when ready (%d): " % (mytest.delay))
 
     if mytest.delay > 0:
-        print("Delaying for %ds" % mytest.delay)
+        LOGGER.info("Delaying for %ds" % mytest.delay)
         time.sleep(mytest.delay)
 
     try:
@@ -459,13 +459,13 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
     # (to capture maybe a stack trace)
     if test_config.print_bodies or not result.passed:
         if test_config.interactive:
-            print("RESPONSE:")
-        print(result.body.decode(ESCAPE_DECODING))
+            LOGGER.info("RESPONSE:")
+        LOGGER.info(result.body.decode(ESCAPE_DECODING))
 
     if test_config.print_headers or not result.passed:
         if test_config.interactive:
-            print("RESPONSE HEADERS:")
-        print(result.response_headers)
+            LOGGER.info("RESPONSE HEADERS:")
+        LOGGER.info(result.response_headers)
 
     # TODO add string escape on body output
     LOGGER.debug(result)
@@ -734,7 +734,7 @@ def run_testsets(testsets):
 
             # handle stop_on_failure flag
             if not result.passed and test.stop_on_failure is not None and test.stop_on_failure:
-                print(
+                LOGGER.error(
                     'STOP ON FAILURE! stopping test set execution, continuing with other test sets')
                 break
 
@@ -747,7 +747,7 @@ def run_testsets(testsets):
                         " Group: " + benchmark.group)
             benchmark_result = run_benchmark(
                 benchmark, myconfig, context=context)
-            print(benchmark_result)
+            LOGGER.info(benchmark_result)
             LOGGER.info("Benchmark Done: " + benchmark.name +
                         " Group: " + benchmark.group)
 
@@ -764,7 +764,7 @@ def run_testsets(testsets):
 
     if myinteractive:
         # a break for when interactive bits are complete, before summary data
-        print("===================================")
+        LOGGER.debug("===================================")
 
     # Print summary results
     for group in sorted(group_results.keys()):
@@ -777,12 +777,12 @@ def run_testsets(testsets):
             group, passfail[failures == 0], str(test_count - failures), str(test_count))
 
         if myconfig.skip_term_colors:
-            print(output_string)
+            LOGGER.info(output_string)
         else:
             if failures > 0:
-                print('\033[91m' + output_string + '\033[0m')
+                LOGGER.info('\033[91m' + output_string + '\033[0m')
             else:
-                print('\033[92m' + output_string + '\033[0m')
+                LOGGER.info('\033[92m' + output_string + '\033[0m')
 
     return total_failures
 
