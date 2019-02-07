@@ -673,6 +673,7 @@ def run_testsets(testsets):
     group_results = dict()  # results, by group
     group_failure_counts = dict()
     total_failures = 0
+    bench_results = dict()
     myinteractive = False
     curl_handle = requests.Request()
 
@@ -739,6 +740,10 @@ def run_testsets(testsets):
                 break
 
         for benchmark in mybenchmarks:  # Run benchmarks, analyze, write
+            # Initialize the dictionaries to store test fail counts and results
+            if benchmark.name not in bench_results:
+                bench_results[benchmark.name] = []
+
             if not benchmark.metrics:
                 LOGGER.debug('Skipping benchmark, no metrics to collect')
                 continue
@@ -750,6 +755,8 @@ def run_testsets(testsets):
             LOGGER.info(benchmark_result)
             LOGGER.info("Benchmark Done: " + benchmark.name +
                         " Group: " + benchmark.group)
+            # Add results for this test group to the result set
+            bench_results[benchmark.name].append(json.dumps(benchmark_result, default=safe_to_json))
 
             if benchmark.output_file:  # Write file
                 LOGGER.debug(
@@ -784,7 +791,10 @@ def run_testsets(testsets):
             else:
                 LOGGER.info('\033[92m' + output_string + '\033[0m')
 
-    return total_failures
+    if bench_results is not []:
+        return bench_results
+    else:
+        return total_failures
 
 
 def register_extensions(modules):
