@@ -791,7 +791,7 @@ def run_testsets(testsets):
             else:
                 LOGGER.info('\033[92m' + output_string + '\033[0m')
 
-    if bench_results is not []:
+    if not mytests:
         return bench_results
     else:
         return total_failures
