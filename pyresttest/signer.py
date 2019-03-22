@@ -12,7 +12,7 @@ import cryptography.hazmat.primitives.serialization
 
 # get env variable set to target url
 BACKEND = cryptography.hazmat.backends.default_backend()
-with open('/keys/oci_api_key.pem', mode='rb') as infile:
+with open('/keys/api_key.pem', mode='rb') as infile:
     APIKEY_PEM = infile.read().strip()
 
 
@@ -45,7 +45,7 @@ class SignedRequestAuth(requests.auth.AuthBase):
         """
         Takes either 2 or 4 args.
         (key_id, private_key) or
-        (tenancy_ocid, user_ocid, key_fingerprint, private_key)
+        (tenancy, user, key_fingerprint, private_key)
         """
         if len(args) not in [2, 4]:
             raise SyntaxError("SignedRequestAuth.__init__ takes 2 or 4 args.")
@@ -53,11 +53,11 @@ class SignedRequestAuth(requests.auth.AuthBase):
             key_id = args[0]
             private_key = args[1]
         elif len(args) == 4:
-            tenancy_ocid = args[0]
-            user_ocid = args[1]
+            tenancy = args[0]
+            user = args[1]
             key_fingerprint = args[2]
             private_key = args[3]
-            key_id = "/".join([tenancy_ocid, user_ocid, key_fingerprint])
+            key_id = "/".join([tenancy, use, key_fingerprint])
 
         self.signers = {}
         for method, headers in six.iteritems(self.required_headers):
