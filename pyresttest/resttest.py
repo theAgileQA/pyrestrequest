@@ -20,7 +20,7 @@ from email import message_from_string  # For headers handling
 import urllib3
 import requests
 import yaml
-from . import oci_signer
+from . import signer
 
 try:
     from cStringIO import StringIO as MyIO
@@ -112,8 +112,8 @@ class TestConfig:
     ssl_insecure = False
     skip_term_colors = True  # Turn off output term colors
     # NEW
-    oci_signature = True
-    oci_key = None
+    signature = False
+    key = None
     # Binding and creation of generators
     variable_binds = None
     generators = None  # Map of generator name to generator function
@@ -354,7 +354,7 @@ def run_test(mytest, test_config=TestConfig(), context=None, curl_handle=None, *
     body = MyIO()
 
     prepped = req.prepare()
-    prepped = oci_signer.request_signer(prepped, TestConfig.oci_key)
+    prepped = signer.request_signer(prepped, TestConfig.key)
 
     result.passed = None
 
