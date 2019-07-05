@@ -1,7 +1,7 @@
-Advanced Guide For PyRestTest:
+Advanced Guide For PyRestRequest:
 ==========
 
-This provides a more detailed guide to using the advanced features of PyRestTest.
+This provides a more detailed guide to using the advanced features of PyRestRequest.
 Specifically **generators**, **variable binding,** **data extraction,** and **content validators.**
 
 For how to write custom Python extensions, see the [extensions guide](extensions.md).
