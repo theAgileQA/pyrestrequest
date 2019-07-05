@@ -12,7 +12,7 @@ import cryptography.hazmat.primitives.serialization
 
 # get env variable set to target url
 BACKEND = cryptography.hazmat.backends.default_backend()
-with open('/keys/api_key.pem', mode='rb') as infile:
+with open('/.ssh/api_key.pem', mode='rb') as infile:
     APIKEY_PEM = infile.read().strip()
 
 
@@ -57,7 +57,7 @@ class SignedRequestAuth(requests.auth.AuthBase):
             user = args[1]
             key_fingerprint = args[2]
             private_key = args[3]
-            key_id = "/".join([tenancy, use, key_fingerprint])
+            key_id = "/".join([tenancy, user, key_fingerprint])
 
         self.signers = {}
         for method, headers in six.iteritems(self.required_headers):

@@ -45,7 +45,7 @@ GENERATORS = {'doubling': parse_generator_doubling}
 If this is imported when executing the test, you can now use this generator in tests. 
 
 # Full Example
-See the [sample extension](sample_extension.py).  
+See the [sample extension](../examples/sample_extension.py).  
 It shows an extension for all extensible functions. 
 
 

@@ -31,9 +31,9 @@ pyresttest
 - A REST testing and API microbenchmarking tool
 - Tests are defined in basic YAML or JSON config files, no code needed
 - Minimal dependencies (requests, pyyaml, optionally future), making it easy to deploy on-server for smoketests/healthchecks
-- Supports [generate/extract/validate](advanced_guide.md) mechanisms to create full test scenarios
+- Supports [generate/extract/validate](docs/advanced_guide.md) mechanisms to create full test scenarios
 - Returns exit codes on failure, to slot into automated configuration management/orchestration tools (also supplies parseable logs)
-- Logic is written and [extensible](extensions.md) in Python
+- Logic is written and [extensible](docs/extensions.md) in Python
 
 # Status
  
@@ -97,7 +97,7 @@ The master branch tracks the latest; it is unit tested, but less stable than the
     - headers: {Content-Type: application/json}
   ```
 # Examples
-* The [Quickstart](quickstart.md) should be *everyone's* starting point
+* The [Quickstart](docs/quickstart.md) should be *everyone's* starting point
 * Here's a [really good example](examples/miniapp-extract-validate.yaml) for how to create a user and then do tests on it.  
   - This shows how to use extraction from responses, templating, and different test types
 * If you're trying to do something fancy, take a look at the [content-test.yaml](pyresttest/content-test.yaml).
@@ -108,10 +108,10 @@ The master branch tracks the latest; it is unit tested, but less stable than the
 
 
 # How Do I Use It?
-- The [Quickstart](quickstart.md) walks through common use cases
+- The [Quickstart](docs/quickstart.md) walks through common use cases
 - Benchmarking has its [own section](#benchmarking) below
-- Advanced features have [separate documentation](advanced_guide.md) (templating, generators, content extraction, complex validation).
-- How to [extend PyRestTest](extensions.md) is its own document
+- Advanced features have [separate documentation](docs/advanced_guide.md) (templating, generators, content extraction, complex validation).
+- How to [extend PyRestTest](docs/extensions.md) is its own document
 - There are a [ton of examples](examples)
 - @BastienAr has created an [Atom editor package](https://atom.io/packages/language-pyresttest) for PyRestTest development (thank you!)
 
@@ -305,7 +305,7 @@ Samples:
 * Releases occur every few months to [PyPi](https://pypi.python.org/pypi/pyresttest/) once a few features are ready to go
 * PyRestTest uses [Semantic Versioning 2.0](http://semver.org/)
 * **Back-compatibility is important! PyRestTest makes a strong effort to maintain command-line and YAML format back-compatibility since 1.0.**
-  - [Extension method signatures](extensions.md) are maintained as much as possible. 
+  - [Extension method signatures](docs/extensions.md) are maintained as much as possible. 
   - However, internal python implementations are subject to change.
   - Major version releases (1.x to 2.x, etc) may introduce breaking API changes, but only *with a really darned good reason, and only there's not another way.*
 
@@ -313,7 +313,7 @@ Samples:
 # Feedback and Contributions
 We welcome any feedback you have, including pull requests, reported issues, etc!
 
-For instructions on how to set up a dev environment for PyRestTest, see [building.md](building.md).
+For instructions on how to set up a dev environment for PyRestTest, see [building.md](docs/building.md).
 
 **For pull requests to get easily merged, please:**
 - Include unit tests (and functional tests, as appropriate) and verify that run_tests.sh passes
@@ -327,7 +327,7 @@ Bear in mind that this is largely a one-man, outside-of-working-hours effort at 
 ## Why not pure-python tests?
 - This is written for an environment where Python is not the sole or primary language
 - **You totally can do pure-Python tests if you want!**  
-    - [Extensions](extensions.md) provide a stable API for adding more complex functionality in python
+    - [Extensions](docs/extensions.md) provide a stable API for adding more complex functionality in python
     - All modules can be imported and used as libraries
     - Gotcha: the project is still young, so internal implementation may change often, much more than YAML features
 
