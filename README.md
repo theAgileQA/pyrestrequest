@@ -32,7 +32,7 @@ pyrestrequest
 - Logic is written and [extensible](docs/extensions.md) in Python
 
 # Installation
-PyRestRequest works on Linux or Mac with Python 2.7, or 3.3+
+PyRestRequest works on Linux or Mac with Python 3.3+
 
 **First we need to install package python-pyyaml:**
 * Ubuntu/Debian: (sudo) `apt-get install python-pyyaml`
