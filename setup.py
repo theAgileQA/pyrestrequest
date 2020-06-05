@@ -6,7 +6,7 @@ except ImportError:
 
 # Future is needed for pip distribution for python 3 support
 dependencies = ['pyyaml', 'requests']
-test_dependencies = ['django==1.11.23', 'django-tastypie==0.12.1', 'jsonpath', 'jmespath']
+test_dependencies = ['django==1.11.29', 'django-tastypie==0.12.1', 'jsonpath', 'jmespath']
 
 # Add additional compatibility shims
 if sys.version_info[0] > 2:
